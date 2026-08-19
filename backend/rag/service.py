@@ -35,9 +35,6 @@ OUT_OF_SCOPE = (
     "pregnancy/medication safety, or another medication-safety topic."
 )
 
-# These patterns are intentionally medication-specific. Broad medical words such as
-# "kidney" or "pregnancy" are NOT enough on their own, because this app is not
-# a general diagnosis/medical-knowledge chatbot.
 _MEDICATION_DOMAIN_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -62,8 +59,6 @@ _MEDICATION_DOMAIN_PATTERNS = tuple(
     )
 )
 
-# Preserve short pronoun-only follow-ups after a medication conversation without
-# letting arbitrary "what about <unrelated topic>?" questions inherit old drugs.
 _FOLLOWUP_ONLY_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -73,9 +68,6 @@ _FOLLOWUP_ONLY_PATTERNS = tuple(
     )
 )
 
-# A standalone personal-suitability question should use the saved health profile,
-# but it must NOT inherit an unrelated condition (for example pregnancy) from an
-# earlier chat turn.
 _PERSONAL_SUITABILITY_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -100,14 +92,6 @@ _TRUE_FOLLOWUP_PATTERNS = tuple(
 
 
 def _is_medication_domain_query(question: str, extraction, has_history: bool) -> bool:
-    """Return True only when the raw user turn belongs to this app's domain.
-
-    This gate runs before retrieval.  It prevents dense search from always returning
-    the "least bad" medical chunk for unrelated questions such as "what is banana
-    bread". Known/unknown drug extraction is trusted first; then explicit
-    medication-language signals are checked.  Only narrow pronoun follow-ups may use
-    prior conversation context.
-    """
     if extraction.drugs or extraction.unknown_candidates:
         return True
     if any(pattern.search(question) for pattern in _MEDICATION_DOMAIN_PATTERNS):
@@ -118,7 +102,6 @@ def _is_medication_domain_query(question: str, extraction, has_history: bool) ->
 
 
 def _needs_history_resolution(question: str) -> bool:
-    """Use previous turns only for genuine follow-ups, never for a new standalone question."""
     return any(pattern.search(question) for pattern in _TRUE_FOLLOWUP_PATTERNS)
 
 
@@ -198,12 +181,6 @@ def _references_user(question: str) -> bool:
 
 
 def _profile_context_tokens(profile_context: str) -> list[str]:
-    """Meaningful free-text terms that evidence must actually address.
-
-    This is intentionally conservative.  For a saved note such as "asthma", a
-    personal suitability answer must contain asthma-relevant evidence; pregnancy
-    or some other unrelated safety section cannot substitute for it.
-    """
     if not profile_context:
         return []
     raw = profile_context.split(":", 1)[-1]
@@ -229,15 +206,13 @@ def _relevant_profile(profile: UserProfile | None, question: str, *, personal_su
     q = question.casefold()
     parts: list[str] = []
     notes, age = _profile_values(profile)
-
-    # Profile facts are personal. Do not inject them into third-person/general
-    # questions such as "Can a pregnant woman take Felodipine?".
     personal_reference = personal_suitability or _references_user(question)
     if notes and personal_reference:
         parts.append(f"Health notes supplied by user: {notes}")
     if age and personal_reference and any(term in q for term in ("age", "dose", "child", "elderly", "years old", "how much")):
         parts.append(f"Age supplied by user: {age}")
     return "\n".join(parts)
+
 
 def _augment_retrieval_with_profile(question: str, profile_context: str) -> str:
     if not profile_context:
@@ -299,11 +274,6 @@ def _fda_fallback(question: str, local_drugs: list[str], unknown_candidates: lis
 
 
 def _filter_fda_chunks_for_question(question: str, intent: str, chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
-    """Keep FDA fallback aligned to the topic actually asked about.
-
-    If a pregnancy query reaches FDA, do not let an unrelated interaction or
-    warning section win simply because it has a high lexical score.
-    """
     if intent not in {"patient_context_query", "single_drug_info", "unknown_drug"}:
         return chunks
     topics = detect_topics(question, "patient_context_query" if intent == "unknown_drug" else intent)
@@ -320,6 +290,7 @@ def _filter_chunks_for_profile_context(chunks: list[RetrievedChunk], profile_not
     if not profile_notes:
         return chunks
     contexts = detect_contexts(profile_notes, "profile")
+    saved_profile_meds = extract_drugs(profile_notes).drugs
     fallback_terms = meaningful_profile_terms(profile_notes, saved_profile_meds)
     matched: list[RetrievedChunk] = []
     for chunk in chunks:
@@ -348,20 +319,13 @@ def answer_question(
     if safety["is_urgent"]:
         return AnswerResult(answer=urgent_response(), citations=[], route="unsafe_symptom")
 
-    # Domain gate MUST run on the raw current turn, before conversation-history
-    # resolution and before any vector/sparse retrieval. Otherwise an unrelated
-    # question can inherit a previous drug or retrieve an arbitrary medical chunk.
     raw_extraction = extract_drugs(question)
     if not _is_medication_domain_query(question, raw_extraction, bool(history)):
         return AnswerResult(answer=OUT_OF_SCOPE, citations=[], route="out_of_scope")
 
-    use_history = _needs_history_resolution(question)
     retrieval_question = _history_context(history, question)
     extraction = extract_drugs(retrieval_question)
     intent = detect_intent(retrieval_question, extraction)
-    # Any explicit clinical context recognized by the configurable registry turns
-    # a one-drug question into patient-context retrieval. This avoids maintaining
-    # an ever-growing hard-coded intent list for asthma, diabetes, heart failure, etc.
     if (
         len(intent.drugs) == 1
         and intent.intent == "single_drug_info"
@@ -375,15 +339,10 @@ def answer_question(
     personal_reference = personal_suitability or _references_user(question)
     age_context = _age_context(profile_age) if personal_reference else ""
     retrieval_profile_context = "\n".join(x for x in (profile_notes if personal_reference else "", age_context) if x).strip()
-    profile_context = _relevant_profile(
-        profile, question, personal_suitability=personal_suitability
-    )
+    profile_context = _relevant_profile(profile, question, personal_suitability=personal_suitability)
     if age_context and age_context not in profile_context:
         profile_context = "\n".join(x for x in (profile_context, f"Age context: {age_context}") if x)
 
-    # A first-person suitability question is patient-context retrieval whenever the
-    # user has saved clinical context. This is generic; it does not depend on any
-    # particular drug or condition name.
     if (
         personal_suitability
         and retrieval_profile_context
@@ -393,9 +352,6 @@ def answer_question(
         intent.intent = "patient_context_query"
 
     search_question = retrieval_question
-
-    # History is resolved deterministically into drug names above. Never send old
-    # assistant answers back to the model; that was the source of query poisoning.
     prompt_history: list[tuple[str, str]] = []
 
     if intent.intent == "multi_drug_query":
@@ -432,27 +388,13 @@ def answer_question(
             )
         return AnswerResult(answer=answer, citations=[c.to_citation() for c in fda_chunks], route="fda_fallback")
 
-    # One-drug patient-context questions use a deterministic ownership-first
-    # path and bypass global vector search. This prevents a Ketoconazole page that
-    # mentions Felodipine from answering a Felodipine pregnancy question.
     if intent.intent == "patient_context_query" and len(intent.drugs) == 1:
         chunks = retrieve_owned_patient_context(db, search_question, intent.drugs[0], retrieval_profile_context, saved_profile_meds)
     else:
         chunks = retrieve(db, search_question, intent.drugs, intent.intent)
 
-    # For a personal suitability query, local owner evidence that explicitly
-    # matches profile context is force-included by retrieval.py. If no such local
-    # match exists, try FDA. We do NOT discard valid local evidence because of a
-    # reranker score, and we never substitute an unrelated clinical topic.
-    if (
-        personal_suitability
-        and retrieval_profile_context
-        and intent.intent == "patient_context_query"
-    ):
+    if personal_suitability and retrieval_profile_context and intent.intent == "patient_context_query":
         if has_patient_context_match(chunks):
-            # Once deterministic profile matches exist, remove unrelated owner
-            # sections before generation. This prevents an asthma question from
-            # being contaminated by the same drug's pregnancy section.
             chunks = [c for c in chunks if c.metadata.get("context_match")]
         else:
             fda_candidates = _filter_fda_chunks_for_question(
@@ -467,9 +409,6 @@ def answer_question(
         if personal_suitability and retrieval_profile_context and intent.intent == "patient_context_query":
             chunks = _filter_chunks_for_profile_context(chunks, retrieval_profile_context)
 
-    # Saved current medications are handled structurally, not as free-text safety
-    # context. For a personal one-drug question, check DDInter against every known
-    # medication named in the saved profile and force any exact pair evidence in.
     if personal_suitability and profile_notes and len(intent.drugs) == 1:
         target = intent.drugs[0]
         saved_meds = [d for d in saved_profile_meds if normalize_drug_name(d) != normalize_drug_name(target)]
