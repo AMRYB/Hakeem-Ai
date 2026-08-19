@@ -28,6 +28,7 @@ def _clean_for_speech(text: str) -> str:
 
 @router.post("")
 def create_speech(payload: TtsRequest, user: User = Depends(get_current_user)):
+    # Read credentials at request time so each fresh Vercel deployment uses its current environment.
     api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="ElevenLabs is not configured yet")
