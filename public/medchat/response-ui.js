@@ -140,6 +140,96 @@
     return citation?.source_title || citation?.source_type || `Source ${index + 1}`;
   }
 
+  function stripEmbeddedSourceSection(markdown, citations) {
+    const text = String(markdown || "");
+    if (!Array.isArray(citations) || !citations.length) return text;
+    const lines = text.replace(/\r/g, "").split("\n");
+    const sourceHeading = /^(?:#{1,6}\s*)?(?:\*\*|__)?\s*sources?\s*:?[\s]*(?:\*\*|__)?$/i;
+    const index = lines.findIndex((line) => sourceHeading.test(line.trim()));
+    if (index === -1) return text;
+    return lines.slice(0, index).join("\n").trimEnd();
+  }
+
+  function selectedEvidenceHtml(citation, index) {
+    const details = [citation?.source_type, citation?.section, citation?.source_locator].filter(Boolean).join(" · ");
+    return `
+      <article class="evidence-card evidence-card--selected">
+        <div class="evidence-card__top">
+          <span class="evidence-index">${index + 1}</span>
+          <div>
+            <strong>${escapeText(citationTitle(citation, index))}</strong>
+            <small>${escapeText(details)}</small>
+          </div>
+        </div>
+        <p>${escapeText(citation?.snippet || "No snippet available.")}</p>
+      </article>`;
+  }
+
+  function openSelectedEvidence(article, citation, index, total) {
+    const evidenceButton = article.querySelector('[data-hakeem-action="evidence"]');
+    if (!evidenceButton) return;
+    evidenceButton.click();
+    requestAnimationFrame(() => {
+      const content = document.getElementById("evidenceContent");
+      const title = document.getElementById("evidenceTitle");
+      if (title) title.textContent = total > 1 ? `Source ${index + 1} of ${total}` : "Source";
+      if (content) content.innerHTML = selectedEvidenceHtml(citation, index);
+    });
+  }
+
+  function renderSourceCarousel(row, article, citations, requestedIndex = 0) {
+    if (!citations.length) {
+      row.remove();
+      return;
+    }
+
+    const index = Math.max(0, Math.min(citations.length - 1, requestedIndex));
+    row.dataset.sourceIndex = String(index);
+    row.innerHTML = "";
+
+    if (citations.length > 1) {
+      const previous = document.createElement("button");
+      previous.type = "button";
+      previous.className = "hakeem-source-nav hakeem-source-nav--previous";
+      previous.setAttribute("aria-label", "Previous source");
+      previous.title = "Previous source";
+      previous.textContent = "‹";
+      previous.addEventListener("click", () => {
+        const nextIndex = (index - 1 + citations.length) % citations.length;
+        renderSourceCarousel(row, article, citations, nextIndex);
+      });
+      row.appendChild(previous);
+    }
+
+    const citation = citations[index];
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "hakeem-source-chip";
+    button.innerHTML = `<span class="hakeem-source-index">${index + 1}</span><span class="hakeem-source-label">${escapeText(citationTitle(citation, index))}</span>`;
+    button.title = citation?.snippet || citationTitle(citation, index);
+    button.addEventListener("click", () => openSelectedEvidence(article, citation, index, citations.length));
+    row.appendChild(button);
+
+    if (citations.length > 1) {
+      const counter = document.createElement("span");
+      counter.className = "hakeem-source-counter";
+      counter.textContent = `${index + 1}/${citations.length}`;
+      row.appendChild(counter);
+
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "hakeem-source-nav hakeem-source-nav--next";
+      next.setAttribute("aria-label", "Next source");
+      next.title = "Next source";
+      next.textContent = "›";
+      next.addEventListener("click", () => {
+        const nextIndex = (index + 1) % citations.length;
+        renderSourceCarousel(row, article, citations, nextIndex);
+      });
+      row.appendChild(next);
+    }
+  }
+
   function enhanceResponses() {
     if (typeof currentChat !== "function" || typeof els === "undefined") return;
     const chat = currentChat();
@@ -149,19 +239,22 @@
       const message = chat.messages?.find((item) => String(item.id) === String(article.dataset.messageId));
       if (!message || message.isTyping) return;
 
+      const citations = Array.isArray(message.citations) ? message.citations : [];
       const bubble = article.querySelector(".bubble");
       if (bubble) {
         const fingerprint = String(message.content || "");
         if (bubble.dataset.markdownSource !== fingerprint) {
-          bubble.innerHTML = markdownToHtml(fingerprint);
+          bubble.innerHTML = markdownToHtml(stripEmbeddedSourceSection(fingerprint, citations));
           bubble.dataset.markdownSource = fingerprint;
           bubble.classList.add("hakeem-markdown");
         }
       }
 
-      const citations = Array.isArray(message.citations) ? message.citations : [];
       const content = article.querySelector(".message__content");
-      if (!citations.length || !content) return;
+      if (!citations.length || !content) {
+        content?.querySelector(".hakeem-source-row")?.remove();
+        return;
+      }
 
       let row = content.querySelector(".hakeem-source-row");
       if (!row) {
@@ -175,31 +268,7 @@
       const sourceKey = citations.map((item, index) => `${citationTitle(item, index)}|${item?.source_locator || ""}`).join(";");
       if (row.dataset.sourceKey === sourceKey) return;
       row.dataset.sourceKey = sourceKey;
-      row.innerHTML = "";
-
-      const visible = citations.slice(0, 3);
-      visible.forEach((citation, index) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "hakeem-source-chip";
-        button.innerHTML = `<span class="hakeem-source-index">${index + 1}</span><span class="hakeem-source-label">${escapeText(citationTitle(citation, index))}</span>`;
-        button.title = citation?.snippet || citationTitle(citation, index);
-        button.addEventListener("click", () => {
-          article.querySelector('[data-hakeem-action="evidence"]')?.click();
-        });
-        row.appendChild(button);
-      });
-
-      if (citations.length > visible.length) {
-        const more = document.createElement("button");
-        more.type = "button";
-        more.className = "hakeem-source-chip hakeem-source-more";
-        more.textContent = `+${citations.length - visible.length} sources`;
-        more.addEventListener("click", () => {
-          article.querySelector('[data-hakeem-action="evidence"]')?.click();
-        });
-        row.appendChild(more);
-      }
+      renderSourceCarousel(row, article, citations, 0);
     });
   }
 
