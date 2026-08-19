@@ -43,7 +43,7 @@ def _prepare_vercel_state_sqlite(database_url: str) -> str:
 
         with sqlite3.connect(target) as conn:
             conn.execute("PRAGMA foreign_keys = ON")
-            for table in ("message_feedback", "chat_messages", "chat_sessions", "user_profiles", "users"):
+            for table in ("chat_shares", "message_feedback", "chat_messages", "chat_sessions", "user_profiles", "users"):
                 try:
                     conn.execute(f"DELETE FROM {table}")
                 except sqlite3.OperationalError:
@@ -102,7 +102,7 @@ KnowledgeSessionLocal = sessionmaker(
 
 
 def init_db() -> None:
-    from backend.models import ChatMessage, ChatSession, DdiPair, MessageFeedback, RagChunk, User, UserProfile
+    from backend.models import ChatMessage, ChatSession, ChatShare, DdiPair, MessageFeedback, RagChunk, User, UserProfile
 
     state_tables = [
         User.__table__,
@@ -110,6 +110,7 @@ def init_db() -> None:
         ChatSession.__table__,
         ChatMessage.__table__,
         MessageFeedback.__table__,
+        ChatShare.__table__,
     ]
     Base.metadata.create_all(bind=engine, tables=state_tables)
 
