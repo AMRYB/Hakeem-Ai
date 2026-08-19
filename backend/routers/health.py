@@ -2,8 +2,13 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from sqlalchemy import func, select
 
 from backend.config import get_settings
+from backend.db import SessionLocal
+from backend.models import DdiPair, RagChunk
+from backend.rag.llm import get_llm
+from backend.rag.retrieval import ddi_pair_lookup, retrieve
 
 router = APIRouter(prefix="/api", tags=["health"])
 settings = get_settings()
@@ -76,4 +81,37 @@ def health(request: Request):
         "free_test_mode": free_test_db,
         "free_test_ready": free_test_ready,
         "production_ready": production_ready,
+    }
+
+
+@router.get("/health/smoke")
+def smoke_test():
+    with SessionLocal() as db:
+        ddi_count = db.scalar(select(func.count()).select_from(DdiPair)) or 0
+        rag_count = db.scalar(select(func.count()).select_from(RagChunk)) or 0
+        pair = ddi_pair_lookup(db, "Acetylsalicylic acid", "Warfarin")
+        rag_hits = retrieve(
+            db,
+            "What are the side effects of acetaminophen?",
+            ["Acetaminophen"],
+            "single_drug_info",
+        )
+
+    ai_reply = get_llm().generate("Reply with exactly: OK")
+
+    return {
+        "status": "ok",
+        "database": {
+            "ddi_pairs": ddi_count,
+            "rag_chunks": rag_count,
+            "aspirin_warfarin_pair_found": bool(pair),
+        },
+        "rag": {
+            "acetaminophen_hits": len(rag_hits),
+            "first_source": rag_hits[0].source_type if rag_hits else None,
+        },
+        "ai": {
+            "reply": ai_reply[:40],
+            "model": "inclusionai/ling-3.0-flash-free",
+        },
     }
