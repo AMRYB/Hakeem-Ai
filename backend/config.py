@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +37,12 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_api_key: str = ""
     ollama_model: str = "qwen2.5:latest"
+
+    openai_api_base: str = "https://api.openai.com/v1"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.4-mini"
+    openai_embedding_model: str = "text-embedding-3-small"
+
     llm_temperature: float = 0.0
     llm_timeout_seconds: int = 120
 
@@ -75,6 +79,10 @@ class Settings(BaseSettings):
             raise RuntimeError("SECRET_KEY must be changed in production")
         if self.app_env.lower() == "production" and not self.profile_encryption_key:
             raise RuntimeError("PROFILE_ENCRYPTION_KEY must be set in production")
+        if self.app_env.lower() == "production" and self.llm_provider == "openai" and not self.openai_api_key:
+            raise RuntimeError("OPENAI_API_KEY must be set when LLM_PROVIDER=openai in production")
+        if self.app_env.lower() == "production" and self.embedding_provider == "openai" and not self.openai_api_key:
+            raise RuntimeError("OPENAI_API_KEY must be set when EMBEDDING_PROVIDER=openai in production")
 
 
 @lru_cache(maxsize=1)
