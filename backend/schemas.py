@@ -56,6 +56,10 @@ class SessionSummary(BaseModel):
     updated_at: datetime
 
 
+class SessionTitleIn(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+
+
 class MessageOut(BaseModel):
     id: str
     role: str
