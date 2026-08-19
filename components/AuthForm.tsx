@@ -3,20 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE, getToken, setToken } from "@/lib/api";
-import HakeemLoader from "@/components/HakeemLoader";
 import styles from "./AuthForm.module.css";
 
 type Mode = "login" | "signup";
 type Theme = "light" | "dark";
-
-function PillIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m10.5 20.5 10-10a4.95 4.95 0 0 0-7-7l-10 10a4.95 4.95 0 0 0 7 7Z" />
-      <path d="m8.5 8.5 7 7" />
-    </svg>
-  );
-}
 
 function savedTheme(): Theme {
   if (typeof window === "undefined") return "light";
@@ -41,9 +31,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [switching, setSwitching] = useState(false);
-  const [authComplete, setAuthComplete] = useState(false);
 
   useEffect(() => {
     setTheme(savedTheme());
@@ -61,7 +50,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   }, [router]);
 
   function switchMode(next: Mode) {
-    if (next === view || switching || loading) return;
+    if (next === view || switching || submitting) return;
     setError("");
     setSwitching(true);
     setView(next);
@@ -71,7 +60,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
   async function submit(event: FormEvent, kind: Mode) {
     event.preventDefault();
-    if (loading || switching) return;
+    if (submitting || switching) return;
     setError("");
 
     if (kind === "signup" && password !== confirmPassword) {
@@ -79,7 +68,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       const response = await fetch(`${API_BASE}/api/auth/${kind}`, {
         method: "POST",
@@ -90,11 +79,10 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       if (!response.ok) throw new Error(body.detail || "Authentication failed");
 
       setToken(body.access_token);
-      setAuthComplete(true);
-      window.setTimeout(() => router.replace("/chat"), 850);
+      router.replace("/chat");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
@@ -102,10 +90,6 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     const isLogin = kind === "login";
     return (
       <div className={styles.formBody}>
-        <div className={styles.brand}>
-          <span className={styles.brandIcon}><PillIcon /></span>
-          <span>Hakeem</span>
-        </div>
         <div className={styles.eyebrow}>{isLogin ? "Welcome back" : "New account"}</div>
         <h1 className={styles.heading}>{isLogin ? "Log in" : "Sign up"}</h1>
         <p className={styles.subheading}>
@@ -157,21 +141,19 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
           {error && view === kind && <div className={styles.error}>{error}</div>}
 
-          <button className={styles.submit} type="submit" disabled={loading || switching}>
-            {loading && view === kind ? (isLogin ? "Signing in…" : "Creating account…") : (isLogin ? "Log in" : "Create account")}
+          <button className={styles.submit} type="submit" disabled={submitting || switching}>
+            {isLogin ? "Log in" : "Create account"}
           </button>
         </form>
 
-        <p className={styles.inlineSwitch}>
-          {isLogin ? "New to Hakeem? " : "Already have an account? "}
-          <button type="button" onClick={() => switchMode(isLogin ? "signup" : "login")}>{isLogin ? "Sign up" : "Log in"}</button>
+        <p className={styles.inlineSwitch} style={{ display: "block" }}>
+          {isLogin ? "First time here? " : "Already have an account? "}
+          <button type="button" onClick={() => switchMode(isLogin ? "signup" : "login")}>
+            {isLogin ? "Sign up" : "Log in"}
+          </button>
         </p>
       </div>
     );
-  }
-
-  if (authComplete) {
-    return <HakeemLoader fullscreen theme={theme} label="Opening Hakeem…" />;
   }
 
   const isSignup = view === "signup";
@@ -189,27 +171,14 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
         <aside className={styles.infoSlider}>
           <div className={styles.infoContent} key={view}>
-            <div className={styles.infoPill}><PillIcon /></div>
             <h2>{isSignup ? "Welcome back." : "New to Hakeem?"}</h2>
             <p>
               {isSignup
                 ? "Your medication conversations and saved context are ready when you are."
                 : "Create an account to keep your conversations available across sessions."}
             </p>
-            <button className={styles.switchButton} type="button" onClick={() => switchMode(isSignup ? "login" : "signup")}> 
-              {isSignup ? "Log in" : "Create account"}
-            </button>
           </div>
         </aside>
-
-        {(switching || loading) && (
-          <div className={styles.transitionOverlay}>
-            <HakeemLoader
-              theme={theme}
-              label={loading ? (view === "login" ? "Signing in…" : "Creating account…") : "Switching…"}
-            />
-          </div>
-        )}
       </section>
     </main>
   );
