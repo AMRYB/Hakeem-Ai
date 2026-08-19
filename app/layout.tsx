@@ -3,9 +3,9 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Grounded DDI Assistant",
-  applicationName: "Grounded DDI",
-  description: "Evidence-grounded drug interaction and medication safety assistant",
+  title: "Hakeem",
+  applicationName: "Hakeem",
+  description: "Evidence-grounded medication safety and drug interaction assistant",
   icons: {
     icon: [
       { url: "/favicon.ico" },
