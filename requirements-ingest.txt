@@ -1,0 +1,5 @@
+-r requirements.txt
+pandas>=2.2,<3
+PyMuPDF>=1.26,<2
+sentence-transformers>=5.0,<6
+chromadb>=1.0,<2
