@@ -3,7 +3,7 @@
 import { useRef } from "react";
 
 export default function ChatPage() {
-  const observerRef = useRef<MutationObserver | null>(null);
+  const observersRef = useRef<MutationObserver[]>([]);
 
   function enforceEnglishUi(doc: Document) {
     const prompt = doc.getElementById("promptInput") as HTMLTextAreaElement | null;
@@ -48,18 +48,42 @@ export default function ChatPage() {
     const doc = frame.contentDocument;
     if (!doc) return;
 
-    observerRef.current?.disconnect();
+    observersRef.current.forEach((observer) => observer.disconnect());
+    observersRef.current = [];
+
     enforceEnglishUi(doc);
     ensureFeedbackSync(doc);
 
-    const observer = new MutationObserver(() => enforceEnglishUi(doc));
-    observer.observe(doc.documentElement, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["placeholder", "aria-label", "title", "data-mode"],
-    });
-    observerRef.current = observer;
+    const prompt = doc.getElementById("promptInput");
+    if (prompt) {
+      const promptObserver = new MutationObserver(() => enforceEnglishUi(doc));
+      promptObserver.observe(prompt, {
+        attributes: true,
+        attributeFilter: ["placeholder"],
+      });
+      observersRef.current.push(promptObserver);
+    }
+
+    const thinkingButton = doc.getElementById("thinkingModeButton");
+    if (thinkingButton) {
+      const thinkingObserver = new MutationObserver(() => enforceEnglishUi(doc));
+      thinkingObserver.observe(thinkingButton, {
+        attributes: true,
+        attributeFilter: ["data-mode", "aria-label", "title"],
+      });
+      observersRef.current.push(thinkingObserver);
+    }
+
+    const thinkingLabel = doc.getElementById("thinkingModeLabel");
+    if (thinkingLabel) {
+      const labelObserver = new MutationObserver(() => enforceEnglishUi(doc));
+      labelObserver.observe(thinkingLabel, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+      observersRef.current.push(labelObserver);
+    }
   }
 
   return (
