@@ -1,0 +1,168 @@
+/* Hakeem response presentation: markdown + grounded source chips. */
+.hakeem-markdown {
+  color: inherit;
+  text-align: left;
+}
+
+.hakeem-markdown > :first-child { margin-top: 0; }
+.hakeem-markdown > :last-child { margin-bottom: 0; }
+
+.hakeem-markdown p {
+  margin: 0 0 12px;
+  line-height: 1.7;
+}
+
+.hakeem-markdown h1,
+.hakeem-markdown h2,
+.hakeem-markdown h3 {
+  margin: 18px 0 9px;
+  color: #111827;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+
+.hakeem-markdown h1 { font-size: 1.28em; }
+.hakeem-markdown h2 { font-size: 1.17em; }
+.hakeem-markdown h3 { font-size: 1.07em; }
+
+.hakeem-markdown strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.hakeem-markdown ul,
+.hakeem-markdown ol {
+  margin: 8px 0 14px;
+  padding-left: 24px;
+}
+
+.hakeem-markdown li {
+  margin: 5px 0;
+  line-height: 1.62;
+}
+
+.hakeem-markdown blockquote {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-left: 3px solid #2f80ed;
+  border-radius: 0 10px 10px 0;
+  background: #f7faff;
+  color: #475569;
+}
+
+.hakeem-markdown code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9em;
+}
+
+.hakeem-markdown pre {
+  overflow-x: auto;
+  margin: 12px 0;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.hakeem-markdown pre code {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.hakeem-markdown a {
+  color: #1266d6;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(18, 102, 214, .25);
+}
+
+.hakeem-markdown hr {
+  height: 1px;
+  margin: 18px 0;
+  border: 0;
+  background: #e5e7eb;
+}
+
+.hakeem-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 3px;
+}
+
+.hakeem-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 220px;
+  min-height: 30px;
+  padding: 5px 9px 5px 6px;
+  border: 1px solid #e1e6ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.hakeem-source-chip:hover {
+  border-color: #b8c8dc;
+  background: #f8fbff;
+  transform: translateY(-1px);
+}
+
+.hakeem-source-index {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 50%;
+  background: #eaf3ff;
+  color: #1266d6;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.hakeem-source-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hakeem-source-more {
+  color: #64748b;
+  background: #f8fafc;
+}
+
+@media (max-width: 820px) {
+  .hakeem-markdown p {
+    margin-bottom: 11px;
+    line-height: 1.68;
+  }
+
+  .hakeem-markdown h1,
+  .hakeem-markdown h2,
+  .hakeem-markdown h3 {
+    margin-top: 16px;
+  }
+
+  .hakeem-source-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+
+  .hakeem-source-row::-webkit-scrollbar { display: none; }
+
+  .hakeem-source-chip {
+    flex: 0 0 auto;
+    max-width: 195px;
+  }
+}
