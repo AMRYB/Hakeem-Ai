@@ -59,6 +59,37 @@ class ChatMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     session = relationship("ChatSession", back_populates="messages")
+    feedback_record = relationship(
+        "MessageFeedback",
+        back_populates="message",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class MessageFeedback(Base):
+    __tablename__ = "message_feedback"
+
+    message_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("chat_messages.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    value: Mapped[str] = mapped_column(String(8), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+        nullable=False,
+    )
+
+    message = relationship("ChatMessage", back_populates="feedback_record")
 
 
 class DdiPair(Base):
