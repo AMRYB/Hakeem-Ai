@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from backend.config import get_settings
 
@@ -17,7 +17,15 @@ def _running_on_vercel() -> bool:
     return os.getenv("VERCEL") == "1" or Path("/var/task").exists()
 
 
-def _prepare_vercel_sqlite(database_url: str) -> str:
+def _normalize_database_url(value: str) -> str:
+    if value.startswith("postgres://"):
+        return "postgresql+psycopg://" + value[len("postgres://"):]
+    if value.startswith("postgresql://") and "+psycopg" not in value.split("://", 1)[0]:
+        return "postgresql+psycopg://" + value[len("postgresql://"):]
+    return value
+
+
+def _prepare_vercel_state_sqlite(database_url: str) -> str:
     if not _running_on_vercel() or not database_url.startswith("sqlite:///"):
         return database_url
 
@@ -45,27 +53,73 @@ def _prepare_vercel_sqlite(database_url: str) -> str:
     return f"sqlite:///{target}"
 
 
-database_url = _prepare_vercel_sqlite(settings.database_url)
-if database_url.startswith("postgres://"):
-    database_url = "postgresql+psycopg://" + database_url[len("postgres://"):]
-elif database_url.startswith("postgresql://") and "+psycopg" not in database_url.split("://", 1)[0]:
-    database_url = "postgresql+psycopg://" + database_url[len("postgresql://"):]
+state_database_url = _normalize_database_url(
+    _prepare_vercel_state_sqlite(settings.database_url)
+)
+knowledge_database_url = _normalize_database_url(settings.knowledge_database_url)
 
-connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-engine = create_engine(database_url, pool_pre_ping=True, connect_args=connect_args)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+state_connect_args = {"check_same_thread": False} if state_database_url.startswith("sqlite") else {}
+knowledge_connect_args = {"check_same_thread": False} if knowledge_database_url.startswith("sqlite") else {}
+
+engine = create_engine(
+    state_database_url,
+    pool_pre_ping=True,
+    connect_args=state_connect_args,
+)
+knowledge_engine = create_engine(
+    knowledge_database_url,
+    pool_pre_ping=True,
+    connect_args=knowledge_connect_args,
+)
 
 
 class Base(DeclarativeBase):
     pass
 
 
-def init_db() -> None:
-    from backend import models  # noqa: F401
+class RoutingSession(Session):
+    def get_bind(self, mapper=None, *, clause=None, bind=None, **kw):
+        if mapper is not None:
+            mapped_class = getattr(mapper, "class_", None)
+            if mapped_class is not None and mapped_class.__name__ in {"DdiPair", "RagChunk"}:
+                return knowledge_engine
+        return super().get_bind(mapper=mapper, clause=clause, bind=bind, **kw)
 
-    Base.metadata.create_all(bind=engine)
-    if settings.is_postgres:
-        with engine.begin() as conn:
+
+SessionLocal = sessionmaker(
+    class_=RoutingSession,
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
+)
+KnowledgeSessionLocal = sessionmaker(
+    bind=knowledge_engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
+)
+
+
+def init_db() -> None:
+    from backend.models import ChatMessage, ChatSession, DdiPair, RagChunk, User, UserProfile
+
+    state_tables = [
+        User.__table__,
+        UserProfile.__table__,
+        ChatSession.__table__,
+        ChatMessage.__table__,
+    ]
+    Base.metadata.create_all(bind=engine, tables=state_tables)
+
+    if not _running_on_vercel():
+        Base.metadata.create_all(
+            bind=knowledge_engine,
+            tables=[DdiPair.__table__, RagChunk.__table__],
+        )
+
+    if settings.resolved_rag_store == "pgvector":
+        with knowledge_engine.begin() as conn:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             conn.execute(
                 text(
