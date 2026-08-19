@@ -1,0 +1,35 @@
+/* Production-only fixes layered on top of the exact MedChat styles. */
+.thinking-mode-wrap {
+  display: none !important;
+}
+
+/* The original MedChat composer reserves space on the right because its sidebar was on the right.
+   Hakeem's sidebar is on the left, so reserve that width on the left instead. */
+.composer {
+  left: var(--sidebar-width) !important;
+  right: 0 !important;
+}
+
+.app-shell[data-sidebar="closed"] .composer {
+  left: var(--sidebar-collapsed-width) !important;
+  right: 0 !important;
+}
+
+/* Empty-state composer is absolute inside the main panel, so it should use that panel's full width. */
+.chat-view.is-empty .composer {
+  left: 0 !important;
+  right: 0 !important;
+}
+
+.composer__box,
+#promptInput {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .composer,
+  .app-shell[data-sidebar="closed"] .composer {
+    left: 0 !important;
+    right: 0 !important;
+  }
+}
