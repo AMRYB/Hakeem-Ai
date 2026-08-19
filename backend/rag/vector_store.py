@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from typing import Iterable
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from backend.config import get_settings
-from backend.db import SessionLocal
+from backend.db import KnowledgeSessionLocal, knowledge_engine
 from backend.models import RagChunk
 from backend.rag.embeddings import get_embedding_provider
 from backend.rag.types import RetrievedChunk
@@ -99,7 +97,7 @@ class ChromaVectorStore(BaseVectorStore):
         if not ids:
             return []
         score_by_id = {cid: max(0.0, 1.0 - float(dist)) for cid, dist in zip(ids, distances)}
-        with SessionLocal() as db:
+        with KnowledgeSessionLocal() as db:
             rows = db.query(RagChunk).filter(RagChunk.id.in_(ids)).all()
         by_id = {row.id: row for row in rows}
         return [_from_model(by_id[cid], score_by_id[cid]) for cid in ids if cid in by_id]
@@ -111,16 +109,13 @@ class PgVectorStore(BaseVectorStore):
         return "[" + ",".join(f"{float(x):.10g}" for x in vector) + "]"
 
     def reset(self) -> None:
-        from backend.db import engine
-        with engine.begin() as conn:
+        with knowledge_engine.begin() as conn:
             conn.execute(text("DELETE FROM rag_vectors"))
 
     def upsert(self, chunks: list[RagChunk], embeddings: list[list[float]]) -> None:
-        from backend.db import engine
-
         if not chunks:
             return
-        with engine.begin() as conn:
+        with knowledge_engine.begin() as conn:
             for chunk, embedding in zip(chunks, embeddings):
                 conn.execute(
                     text(
@@ -136,7 +131,7 @@ class PgVectorStore(BaseVectorStore):
     def query(self, query: str, top_k: int) -> list[RetrievedChunk]:
         vector = get_embedding_provider().embed([query])[0]
         literal = self._literal(vector)
-        with SessionLocal() as db:
+        with KnowledgeSessionLocal() as db:
             rows = db.execute(
                 text(
                     """
