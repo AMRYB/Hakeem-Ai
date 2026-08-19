@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -42,6 +44,7 @@ class Citation(BaseModel):
 
 class ChatResponse(BaseModel):
     session_id: str
+    message_id: str
     answer: str
     citations: list[Citation] = Field(default_factory=list)
     route: str
@@ -58,4 +61,14 @@ class MessageOut(BaseModel):
     role: str
     content: str
     citations: list[Citation] = Field(default_factory=list)
+    feedback: Literal["up", "down"] | None = None
     created_at: datetime
+
+
+class FeedbackIn(BaseModel):
+    feedback: Literal["up", "down"] | None = None
+
+
+class FeedbackOut(BaseModel):
+    message_id: str
+    feedback: Literal["up", "down"] | None = None
