@@ -6,6 +6,7 @@ export type Citation = {
   source_locator: string;
   section?: string | null;
   snippet: string;
+  relevance_percentage?: number | null;
 };
 
 export type ChatMessage = {

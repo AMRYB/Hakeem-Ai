@@ -40,6 +40,7 @@ class Citation(BaseModel):
     source_locator: str
     section: str | None = None
     snippet: str
+    relevance_percentage: int | None = Field(default=None, ge=0, le=100)
 
 
 class ChatResponse(BaseModel):

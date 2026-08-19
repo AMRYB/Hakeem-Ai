@@ -264,8 +264,13 @@
           <article class="evidence-card">
             <div class="evidence-card__top">
               <span class="evidence-index">${index + 1}</span>
-              <div>
-                <strong>${escapeHtml(citation.source_title || citation.source_type || `Source ${index + 1}`)}</strong>
+              <div class="evidence-card__details">
+                <div class="evidence-card__title-row">
+                  <strong>${escapeHtml(citation.source_title || citation.source_type || `Source ${index + 1}`)}</strong>
+                  ${Number.isFinite(Number(citation.relevance_percentage))
+                    ? `<span class="evidence-relevance" title="Source relevance to this question">${Math.max(0, Math.min(100, Math.round(Number(citation.relevance_percentage))))}%</span>`
+                    : ""}
+                </div>
                 <small>${escapeHtml([citation.source_type, citation.section, citation.source_locator].filter(Boolean).join(" · "))}</small>
               </div>
             </div>

@@ -31,12 +31,17 @@ class RetrievedChunk:
             values.add(str(value).casefold())
         return values
 
-    def to_citation(self) -> dict[str, str | None]:
+    def to_citation(self) -> dict[str, str | int | None]:
         snippet = " ".join(self.text.split())[:420]
+        # This is source relevance/grounding strength, not medical certainty.
+        # Exact deterministic evidence (e.g. DDInter/openFDA fallback chunks) already
+        # carries reranker_score=1.0; normal RAG chunks use the cross-encoder score.
+        relevance_percentage = max(0, min(100, round(float(self.reranker_score) * 100)))
         return {
             "source_type": self.source_type,
             "source_title": self.source_title,
             "source_locator": self.source_locator,
             "section": self.section,
             "snippet": snippet,
+            "relevance_percentage": relevance_percentage,
         }
