@@ -25,7 +25,7 @@
 
   function applyFeedbackUi() {
     const chat = typeof currentChat === "function" ? currentChat() : null;
-    if (!chat?.messages || !window.els?.messages) return;
+    if (!chat?.messages || typeof els === "undefined" || !els.messages) return;
 
     els.messages.querySelectorAll(".message--assistant[data-message-id]").forEach((article) => {
       const message = chat.messages.find((item) => String(item.id) === String(article.dataset.messageId));
