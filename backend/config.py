@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./ddi_app.db"
     postgres_url: str = ""
+    postgres_url_non_pooling: str = ""
     knowledge_database_url: str = "sqlite:///./ddi_app.db"
     rag_store: str = "auto"
     chroma_dir: str = "./chroma_db"
@@ -70,6 +71,8 @@ class Settings(BaseSettings):
     def resolved_database_url(self) -> str:
         if self.database_url != "sqlite:///./ddi_app.db":
             return self.database_url
+        if self.postgres_url_non_pooling:
+            return self.postgres_url_non_pooling
         if self.postgres_url:
             return self.postgres_url
         return self.database_url
