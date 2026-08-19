@@ -15,10 +15,24 @@
   right: 0 !important;
 }
 
-/* Empty-state composer is absolute inside the main panel, so it should use that panel's full width. */
+/* Empty-state composer belongs to the main panel and must always match the centered welcome layout. */
 .chat-view.is-empty .composer {
   left: 0 !important;
   right: 0 !important;
+}
+
+.chat-view.is-empty .empty-state h1 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.chat-view.is-empty .suggestion-grid {
+  width: min(1000px, calc(100vw - var(--sidebar-width) - 64px));
+}
+
+.chat-view.is-empty .suggestion-grid button {
+  max-width: 100%;
 }
 
 .composer__box,
@@ -26,10 +40,26 @@
   min-width: 0;
 }
 
+/* Give Message Hakeem / Continue a little more breathing room from the left edge. */
+#promptInput {
+  padding-left: 14px !important;
+  padding-right: 6px !important;
+}
+
+@media (max-width: 1100px) {
+  .chat-view.is-empty .suggestion-grid {
+    width: min(780px, calc(100vw - var(--sidebar-width) - 44px));
+  }
+}
+
 @media (max-width: 860px) {
   .composer,
   .app-shell[data-sidebar="closed"] .composer {
     left: 0 !important;
     right: 0 !important;
+  }
+
+  .chat-view.is-empty .suggestion-grid {
+    width: min(100% - 22px, 680px);
   }
 }
