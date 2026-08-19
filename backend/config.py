@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000"
 
     database_url: str = "sqlite:///./ddi_app.db"
+    postgres_url: str = ""
     knowledge_database_url: str = "sqlite:///./ddi_app.db"
     rag_store: str = "auto"
     chroma_dir: str = "./chroma_db"
@@ -66,8 +67,17 @@ class Settings(BaseSettings):
     chat_rate_limit_per_minute: int = 30
 
     @property
+    def resolved_database_url(self) -> str:
+        if self.database_url != "sqlite:///./ddi_app.db":
+            return self.database_url
+        if self.postgres_url:
+            return self.postgres_url
+        return self.database_url
+
+    @property
     def is_postgres(self) -> bool:
-        return self.database_url.startswith("postgresql") or self.database_url.startswith("postgres")
+        value = self.resolved_database_url
+        return value.startswith("postgresql") or value.startswith("postgres")
 
     @property
     def is_knowledge_postgres(self) -> bool:
