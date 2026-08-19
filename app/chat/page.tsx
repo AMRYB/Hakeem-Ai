@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import HakeemLoader from "@/components/HakeemLoader";
 import { getToken } from "@/lib/api";
 
 type Theme = "light" | "dark";
@@ -61,12 +60,11 @@ export default function ChatPage() {
     ensureScript(doc, "/medchat/response-ui.js", "hakeem-response-ui");
     ensureScript(doc, "/medchat/mobile-app.js", "hakeem-mobile-app");
     ensureScript(doc, "/medchat/icon-polish.js", "hakeem-icon-polish");
+    ensureScript(doc, "/medchat/logout-control.js", "hakeem-logout-control");
     ensureStylesheet(doc, "/medchat/theme-polish.css", "hakeem-theme-polish");
   }
 
-  if (!authorized) {
-    return <HakeemLoader fullscreen theme={theme} label="Opening Hakeem…" />;
-  }
+  if (!authorized) return null;
 
   return (
     <iframe
