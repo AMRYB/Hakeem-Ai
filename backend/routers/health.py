@@ -76,3 +76,5 @@ def health():
         "free_test_ready": free_test_ready,
         "production_ready": production_ready,
     }
+
+# Deployment refresh marker after Supabase integration.
