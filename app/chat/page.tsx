@@ -60,6 +60,7 @@ export default function ChatPage() {
     ensureScript(doc, "/medchat/production-fixes.js", "hakeem-production-fixes");
     ensureScript(doc, "/medchat/response-ui.js", "hakeem-response-ui");
     ensureScript(doc, "/medchat/mobile-app.js", "hakeem-mobile-app");
+    ensureScript(doc, "/medchat/icon-polish.js", "hakeem-icon-polish");
     ensureStylesheet(doc, "/medchat/theme-polish.css", "hakeem-theme-polish");
   }
 
