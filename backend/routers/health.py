@@ -78,6 +78,7 @@ def health():
     }
 
 
+# Temporary smoke endpoint; it is removed after end-to-end verification.
 @router.get("/health/smoke")
 def smoke_test():
     with SessionLocal() as db:
