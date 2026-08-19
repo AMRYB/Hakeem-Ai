@@ -16,13 +16,27 @@ def health():
     safety_patterns_available = Path(settings.safety_patterns_file).exists()
     vercel_oidc_available = bool(os.getenv("VERCEL_OIDC_TOKEN"))
 
+    if settings.llm_provider == "openai":
+        llm_model = settings.openai_model
+        llm_remote_ready = bool(settings.openai_api_key)
+    else:
+        llm_model = settings.ollama_model
+        llm_remote_ready = settings.ollama_base_url != "http://localhost:11434"
+
+    if settings.embedding_provider == "openai":
+        embedding_remote_ready = bool(settings.openai_api_key)
+    elif settings.embedding_provider == "ollama":
+        embedding_remote_ready = settings.ollama_base_url != "http://localhost:11434"
+    else:
+        embedding_remote_ready = False
+
     production_ready = all(
         (
             settings.app_env.lower() == "production",
             settings.is_postgres,
             settings.resolved_rag_store == "pgvector",
-            settings.embedding_provider != "sentence_transformers",
-            settings.ollama_base_url != "http://localhost:11434",
+            llm_remote_ready,
+            embedding_remote_ready,
             aliases_available,
             safety_patterns_available,
         )
@@ -35,7 +49,7 @@ def health():
         "rag_store": settings.resolved_rag_store,
         "embedding_provider": settings.embedding_provider,
         "llm_provider": settings.llm_provider,
-        "llm_model": settings.ollama_model,
+        "llm_model": llm_model,
         "runtime_files": {
             "drug_aliases": aliases_available,
             "safety_patterns": safety_patterns_available,
