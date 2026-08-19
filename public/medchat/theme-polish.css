@@ -1,0 +1,151 @@
+/* Final visual polish loaded after desktop + mobile layers. */
+
+/* Icon/navigation controls stay clean: no border and no hover background. */
+.icon-button,
+.sidebar-toggle,
+.mobile-sidebar-toggle,
+.topbar-action,
+.conversation-action,
+.message-action,
+.feature-icon-button,
+.rail-action,
+.project-title,
+.sidebar-search-button,
+.profile-button,
+.hakeem-source-nav {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.icon-button:hover,
+.sidebar-toggle:hover,
+.mobile-sidebar-toggle:hover,
+.topbar-action:hover,
+.conversation-action:hover,
+.message-action:hover,
+.feature-icon-button:hover,
+.rail-action:hover,
+.project-title:hover,
+.sidebar-search-button:hover,
+.profile-button:hover,
+.hakeem-source-nav:hover {
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  background: transparent !important;
+}
+
+/* User avatar: blue on light theme. */
+.message--user .message__avatar {
+  background: #0b57d0 !important;
+  color: #fff !important;
+}
+
+/* Keep blue actions driven by the shared accent in light theme. */
+.send-button,
+.primary-sheet-button,
+.account-option__avatar {
+  background: var(--hakeem-blue) !important;
+}
+
+/* Dark theme: black navigation surfaces + orange accents. */
+:root[data-theme="dark"] {
+  --hakeem-blue: #ff8a00;
+  --hakeem-blue-dark: #d56f00;
+  --hakeem-blue-hover: rgba(255, 138, 0, .12);
+  --hakeem-blue-active: rgba(255, 138, 0, .20);
+}
+
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .app-shell[data-sidebar="closed"] .sidebar {
+  background: #090909 !important;
+  border-color: #202020 !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .compose-button {
+  border: 0 !important;
+  background: var(--hakeem-blue) !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .compose-button:hover {
+  background: var(--hakeem-blue) !important;
+}
+
+:root[data-theme="dark"] .conversation-item.is-active,
+:root[data-theme="dark"] .quick-link.is-active {
+  background: var(--hakeem-blue) !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .message--user .message__avatar,
+:root[data-theme="dark"] .avatar {
+  background: var(--hakeem-blue) !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .send-button,
+:root[data-theme="dark"] .primary-sheet-button,
+:root[data-theme="dark"] .account-option__avatar {
+  background: var(--hakeem-blue) !important;
+  color: #fff !important;
+}
+
+:root[data-theme="dark"] .hakeem-feedback-button.is-selected,
+:root[data-theme="dark"] .evidence-button,
+:root[data-theme="dark"] .feature-drawer__eyebrow,
+:root[data-theme="dark"] .evidence-index,
+:root[data-theme="dark"] .hakeem-source-index,
+:root[data-theme="dark"] .hakeem-markdown a {
+  color: var(--hakeem-blue) !important;
+}
+
+:root[data-theme="dark"] .evidence-button,
+:root[data-theme="dark"] .hakeem-feedback-button.is-selected {
+  border: 0 !important;
+  background: rgba(255, 138, 0, .10) !important;
+}
+
+:root[data-theme="dark"] .evidence-button b,
+:root[data-theme="dark"] .evidence-index,
+:root[data-theme="dark"] .hakeem-source-index {
+  background: rgba(255, 138, 0, .16) !important;
+  color: var(--hakeem-blue) !important;
+}
+
+/* Dark mobile must feel like the same app, not a white mobile shell. */
+@media (max-width: 820px) {
+  :root[data-theme="dark"] body,
+  :root[data-theme="dark"] .main-panel {
+    background: #111 !important;
+  }
+
+  :root[data-theme="dark"] .topbar,
+  :root[data-theme="dark"] .mobile-bottom-nav,
+  :root[data-theme="dark"] .composer__box {
+    background: rgba(16, 16, 16, .97) !important;
+    color: #f5f5f5 !important;
+    border-color: #2a2a2a !important;
+  }
+
+  :root[data-theme="dark"] .mobile-top-title {
+    color: #f5f5f5 !important;
+  }
+
+  :root[data-theme="dark"] .mobile-bottom-nav button {
+    color: #a3a3a3 !important;
+  }
+
+  :root[data-theme="dark"] .mobile-bottom-nav button.is-active,
+  :root[data-theme="dark"] .mobile-bottom-nav button:active {
+    color: var(--hakeem-blue) !important;
+    background: rgba(255, 138, 0, .11) !important;
+  }
+
+  :root[data-theme="dark"] .chat-view.is-empty .suggestion-grid button {
+    border: 0 !important;
+    background: #1b1b1b !important;
+    color: #f5f5f5 !important;
+  }
+}
