@@ -60,6 +60,24 @@
     };
   }
 
+  const originalFinishInlineRename = typeof finishInlineRename === "function" ? finishInlineRename : null;
+  if (originalFinishInlineRename) {
+    finishInlineRename = function persistentRename(options = {}) {
+      const chatId = typeof editingChatId !== "undefined" ? editingChatId : null;
+      const input = chatId ? els.conversationGroups.querySelector(`[data-rename-input="${chatId}"]`) : null;
+      const nextTitle = input?.value?.trim();
+      originalFinishInlineRename(options);
+      if (!chatId || options.revert || !nextTitle) return;
+      const chat = state.chats.find((item) => item.id === chatId);
+      const sessionId = backendId(chat);
+      if (!sessionId) return;
+      jsonRequest(`/api/chat/sessions/${encodeURIComponent(sessionId)}/title`, {
+        method: "PUT",
+        body: JSON.stringify({ title: nextTitle.slice(0, 160) }),
+      }).catch((error) => showToast(error.message || "Could not save conversation name"));
+    };
+  }
+
   async function shareChat(chat) {
     const sessionId = backendId(chat);
     if (!sessionId) {
@@ -95,6 +113,29 @@
     },
     true,
   );
+
+  const clearButton = document.getElementById("clearButton");
+  if (clearButton) {
+    clearButton.addEventListener(
+      "click",
+      async (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        try {
+          await jsonRequest("/api/chat/sessions", { method: "DELETE" });
+          state.chats = [createBlankChat()];
+          state.currentChatId = state.chats[0].id;
+          saveState();
+          render();
+          if (typeof closeSheets === "function") closeSheets();
+          showToast("All conversations cleared");
+        } catch (error) {
+          showToast(error.message || "Could not clear conversations");
+        }
+      },
+      true,
+    );
+  }
 
   if (typeof speakText === "function") {
     speakText = async function elevenLabsSpeak(text) {
@@ -144,7 +185,7 @@
   document.querySelector('[data-plus-action="recent"]')?.remove();
 
   document.querySelectorAll(
-    '[data-menu-action="group"], [data-menu-action="archive"], [data-top-menu-action="group"], [data-top-menu-action="files"], [data-top-menu-action="archive"]',
+    '[data-menu-action="group"], [data-menu-action="archive"], [data-menu-action="pin"], [data-top-menu-action="group"], [data-top-menu-action="files"], [data-top-menu-action="archive"], [data-top-menu-action="pin"]',
   ).forEach((button) => button.remove());
 
   const sendButton = document.getElementById("sendButton");
