@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 from backend.config import get_settings
 from backend.db import get_db
 from backend.dependencies import get_current_user, rate_limiter
-from backend.models import ChatMessage, ChatSession, MessageFeedback, User
+from backend.models import ChatMessage, ChatSession, ChatShare, MessageFeedback, User
 from backend.rag.service import answer_question
 from backend.schemas import (
     ChatRequest,
@@ -21,6 +22,8 @@ from backend.schemas import (
     FeedbackOut,
     MessageOut,
     SessionSummary,
+    ShareOut,
+    SharedChatOut,
 )
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -51,6 +54,17 @@ def _recent_turns(db: Session, session_id: str) -> list[tuple[str, str]]:
             turns.append((pending_user, row.content))
             pending_user = None
     return turns[-6:]
+
+
+def _message_out(message: ChatMessage) -> MessageOut:
+    return MessageOut(
+        id=message.id,
+        role=message.role,
+        content=message.content,
+        citations=[Citation(**x) for x in json.loads(message.citations_json or "[]")],
+        feedback=message.feedback_record.value if message.feedback_record else None,
+        created_at=message.created_at,
+    )
 
 
 @router.post("", response_model=ChatResponse)
@@ -108,17 +122,55 @@ def get_session_messages(session_id: str, db: Session = Depends(get_db), user: U
     messages = db.scalars(
         select(ChatMessage).where(ChatMessage.session_id == session.id).order_by(ChatMessage.created_at)
     ).all()
-    return [
-        MessageOut(
-            id=m.id,
-            role=m.role,
-            content=m.content,
-            citations=[Citation(**x) for x in json.loads(m.citations_json or "[]")],
-            feedback=m.feedback_record.value if m.feedback_record else None,
-            created_at=m.created_at,
+    return [_message_out(message) for message in messages]
+
+
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    session = _owned_session(db, session_id, user.id)
+    db.delete(session)
+    db.commit()
+    return {"deleted": True, "chat_id": session_id}
+
+
+@router.post("/sessions/{session_id}/share", response_model=ShareOut)
+def share_session(
+    session_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    session = _owned_session(db, session_id, user.id)
+    share = db.scalar(select(ChatShare).where(ChatShare.session_id == session.id))
+    if not share:
+        share = ChatShare(
+            token=secrets.token_urlsafe(18),
+            session_id=session.id,
+            user_id=user.id,
         )
-        for m in messages
-    ]
+        db.add(share)
+        db.commit()
+    base = str(request.base_url).rstrip("/")
+    return ShareOut(chat_id=session.id, share_id=share.token, share_url=f"{base}/share/{share.token}")
+
+
+@router.get("/shared/{share_id}", response_model=SharedChatOut)
+def get_shared_session(share_id: str, db: Session = Depends(get_db)):
+    share = db.get(ChatShare, share_id)
+    if not share:
+        raise HTTPException(status_code=404, detail="Shared conversation not found")
+    session = db.get(ChatSession, share.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Shared conversation not found")
+    messages = db.scalars(
+        select(ChatMessage).where(ChatMessage.session_id == session.id).order_by(ChatMessage.created_at)
+    ).all()
+    return SharedChatOut(
+        chat_id=session.id,
+        share_id=share.token,
+        title=session.title,
+        messages=[_message_out(message) for message in messages],
+    )
 
 
 @router.put("/messages/{message_id}/feedback", response_model=FeedbackOut)
