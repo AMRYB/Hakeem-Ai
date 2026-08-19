@@ -3,6 +3,14 @@
   let activeAudio = null;
   let activeAudioUrl = null;
 
+  if (!document.querySelector('link[data-hakeem-production-css]')) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/medchat/production-fixes.css";
+    link.dataset.hakeemProductionCss = "true";
+    document.head.appendChild(link);
+  }
+
   function authHeaders(extra = {}) {
     const token = localStorage.getItem(TOKEN_KEY);
     return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
@@ -82,7 +90,7 @@
       if (menuShare && typeof activeConversationMenuChatId !== "undefined" && activeConversationMenuChatId) {
         chat = state.chats.find((item) => item.id === activeConversationMenuChatId) || chat;
       }
-      closeConversationMenu?.();
+      if (typeof closeConversationMenu === "function") closeConversationMenu();
       shareChat(chat);
     },
     true,
@@ -132,6 +140,8 @@
   }
 
   document.querySelector(".thinking-mode-wrap")?.remove();
+  document.querySelector("#temporaryChatButton")?.remove();
+  document.querySelector('[data-plus-action="recent"]')?.remove();
 
   document.querySelectorAll(
     '[data-menu-action="group"], [data-menu-action="archive"], [data-top-menu-action="group"], [data-top-menu-action="files"], [data-top-menu-action="archive"]',
