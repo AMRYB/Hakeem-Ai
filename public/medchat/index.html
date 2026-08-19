@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hakeem AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="overrides.css" />
+  </head>
+  <body>
+    <div class="app-shell" data-sidebar="open">
+      <aside class="sidebar" aria-label="Conversation sidebar">
+        <div class="sidebar__top">
+          <button class="project-title" type="button" id="projectTitleButton" aria-label="Open menu" title="Open menu">
+            <i class="project-title__icon" data-lucide="aperture"></i>
+            <span>Hakeem AI</span>
+          </button>
+          <button class="icon-button sidebar-toggle" type="button" aria-label="Show or hide sidebar" title="Show or hide sidebar">
+            <i data-lucide="panel-right"></i>
+          </button>
+        </div>
+
+        <button class="compose-button" type="button" id="newChatButton">
+          <i data-lucide="square-pen"></i>
+          <span>New chat</span>
+        </button>
+
+        <button class="sidebar-search-button" type="button" id="searchButton">
+          <i data-lucide="search"></i>
+          <span>Search conversations</span>
+        </button>
+
+        <div class="sidebar-rail-actions" aria-label="Shortcuts">
+          <button class="rail-action" type="button" id="railPinnedButton" aria-label="Pinned" title="Pinned">
+            <i data-lucide="pin"></i>
+          </button>
+          <button class="rail-action" type="button" id="railChatButton" aria-label="Chat" title="Chat">
+            <i data-lucide="message-circle"></i>
+          </button>
+        </div>
+
+        <div class="conversation-groups" id="conversationGroups" aria-live="polite"></div>
+
+        <div class="sidebar__bottom">
+          <button class="profile-button" type="button" id="profileButton">
+            <span class="avatar" id="profileAvatar">A</span>
+            <span class="profile-copy">
+              <strong id="profileName">AMRYB</strong>
+            </span>
+            <i data-lucide="more-horizontal"></i>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div class="topbar__left">
+            <button class="icon-button mobile-sidebar-toggle" type="button" aria-label="Open sidebar" title="Open sidebar">
+              <i data-lucide="panel-right"></i>
+            </button>
+          </div>
+
+          <div class="topbar__right">
+            <button class="temporary-chat-button" type="button" id="temporaryChatButton" aria-label="Temporary chat" title="Temporary chat">
+              <i data-lucide="clock-3"></i>
+            </button>
+            <button class="topbar-action" type="button" id="shareButton" aria-label="Share conversation" title="Share conversation" hidden>
+              <i data-lucide="share"></i>
+              <span>Share</span>
+            </button>
+            <button class="icon-button" type="button" id="topChatMenuButton" aria-label="Conversation options" title="Conversation options" hidden>
+              <i data-lucide="ellipsis"></i>
+            </button>
+          </div>
+        </header>
+
+        <section class="view-stack">
+          <section class="chat-view" id="chatView" aria-label="Chat">
+            <div class="message-scroll" id="messageScroll">
+              <div class="empty-state" id="emptyState">
+                <div class="empty-state__mark">
+                  <i data-lucide="sparkles"></i>
+                </div>
+                <h1>How are you feeling today?</h1>
+                <div class="suggestion-grid" id="suggestionGrid">
+                  <button type="button" data-prompt="I have a cold, cough, and runny nose. What should I do?">
+                    <i data-lucide="thermometer"></i>
+                    <span>I have a cold</span>
+                  </button>
+                  <button type="button" data-prompt="My stomach hurts and I feel uncomfortable. What should I do?">
+                    <i data-lucide="activity"></i>
+                    <span>My stomach hurts</span>
+                  </button>
+                  <button type="button" data-prompt="I have a severe headache and I do not know why. What should I do?">
+                    <i data-lucide="brain"></i>
+                    <span>Severe headache</span>
+                  </button>
+                  <button type="button" data-prompt="I have a fever and feel tired. What should I do?">
+                    <i data-lucide="heart-pulse"></i>
+                    <span>Fever and fatigue</span>
+                  </button>
+                </div>
+              </div>
+              <div class="messages" id="messages"></div>
+            </div>
+
+            <form class="composer" id="composer">
+              <div class="attachment-row" id="attachmentRow" hidden></div>
+              <div class="composer__box">
+                <div class="composer-plus-wrap">
+                  <input id="fileInput" type="file" multiple hidden />
+                  <button class="composer-plus-button" type="button" id="attachButton" aria-label="Tools" title="Tools" aria-haspopup="menu" aria-expanded="false">
+                    <i data-lucide="plus"></i>
+                  </button>
+                  <div class="composer-plus-menu" id="toolsMenu" role="menu" aria-label="قائمة Tools">
+                    <button type="button" role="menuitem" data-plus-action="attach">
+                      <i data-lucide="paperclip"></i>
+                      <span>Add photos and files</span>
+                    </button>
+                    <button type="button" role="menuitem" data-plus-action="recent">
+                      <i data-lucide="file-text"></i>
+                      <span>Recent files</span>
+                      <i data-lucide="chevron-right"></i>
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  id="promptInput"
+                  rows="1"
+                  placeholder="Message Hakeem AI"
+                  autocomplete="off"
+                ></textarea>
+                <div class="thinking-mode-wrap">
+                  <button class="thinking-mode-button" type="button" id="thinkingModeButton" aria-label="Choose reasoning mode" title="Choose reasoning mode" aria-haspopup="menu" aria-expanded="false">
+                    <i data-lucide="brain"></i>
+                    <span id="thinkingModeLabel">Normal</span>
+                    <i data-lucide="chevron-down"></i>
+                  </button>
+                  <div class="dropdown thinking-mode-menu" id="thinkingModeMenu" role="menu" aria-label="Choose reasoning mode">
+                    <button type="button" role="menuitemradio" data-thinking-mode="normal" aria-selected="true" aria-checked="true">
+                      <i data-lucide="zap"></i>
+                      <span>التفكير الNormal</span>
+                      <i data-lucide="check"></i>
+                    </button>
+                    <button type="button" role="menuitemradio" data-thinking-mode="advanced" aria-selected="false" aria-checked="false">
+                      <i data-lucide="brain-circuit"></i>
+                      <span>Advanced reasoning</span>
+                      <i data-lucide="check"></i>
+                    </button>
+                  </div>
+                </div>
+                <button class="composer-icon-button" type="button" id="micButton" aria-label="Voice input" title="Voice input">
+                  <i data-lucide="mic"></i>
+                </button>
+                <button class="send-button" type="submit" id="sendButton" aria-label="Voice input" title="Voice input">
+                  <i data-lucide="audio-lines"></i>
+                </button>
+              </div>
+            </form>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="conversation-menu" id="conversationMenu" role="menu" aria-label="Conversation options" hidden>
+      <button type="button" role="menuitem" data-menu-action="share">
+        <i data-lucide="share"></i>
+        <span>Share</span>
+      </button>
+      <button type="button" role="menuitem" data-menu-action="group">
+        <i data-lucide="user-plus"></i>
+        <span>Start group chat</span>
+      </button>
+      <button type="button" role="menuitem" data-menu-action="rename">
+        <i data-lucide="pencil"></i>
+        <span>Rename</span>
+      </button>
+      <button type="button" role="menuitem" data-menu-action="pin">
+        <i data-lucide="pin"></i>
+        <span id="menuPinLabel">Pin conversation</span>
+      </button>
+      <button type="button" role="menuitem" data-menu-action="archive">
+        <i data-lucide="archive"></i>
+        <span>Archive</span>
+      </button>
+      <button class="conversation-menu__danger" type="button" role="menuitem" data-menu-action="delete">
+        <i data-lucide="trash-2"></i>
+        <span>Delete</span>
+      </button>
+    </div>
+
+    <div class="conversation-menu top-chat-menu" id="topChatMenu" role="menu" aria-label="خيارات Chat" hidden>
+      <button type="button" role="menuitem" data-top-menu-action="group">
+        <i data-lucide="user-plus"></i>
+        <span>Start group chat</span>
+      </button>
+      <button type="button" role="menuitem" data-top-menu-action="files">
+        <i data-lucide="files"></i>
+        <span>عرض الملفات في Chat</span>
+      </button>
+      <button type="button" role="menuitem" data-top-menu-action="pin">
+        <i data-lucide="pin"></i>
+        <span id="topMenuPinLabel">Pin conversation</span>
+      </button>
+      <button type="button" role="menuitem" data-top-menu-action="archive">
+        <i data-lucide="archive"></i>
+        <span>Archive</span>
+      </button>
+      <button class="conversation-menu__danger" type="button" role="menuitem" data-top-menu-action="delete">
+        <i data-lucide="trash-2"></i>
+        <span>Delete</span>
+      </button>
+    </div>
+
+    <div class="sheet" id="searchSheet" hidden>
+      <div class="sheet__panel sheet__panel--wide" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
+        <div class="sheet__header">
+          <h2 id="searchTitle">Search conversations</h2>
+          <button class="icon-button" type="button" data-close-sheet aria-label="Close" title="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="search-dialog">
+          <label class="search-dialog__field">
+            <i data-lucide="search"></i>
+            <input id="chatSearch" type="search" placeholder="Type a conversation name" autocomplete="off" />
+          </label>
+          <div class="search-results" id="searchResults"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet" id="profileSheet" hidden>
+      <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+        <div class="sheet__header">
+          <h2 id="profileTitle">Workspace</h2>
+          <button class="icon-button" type="button" data-close-sheet aria-label="Close" title="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <button class="sheet-row" type="button" id="changeAccountButton">
+          <i data-lucide="user-round-cog"></i>
+          <span>Account</span>
+        </button>
+        <button class="sheet-row" type="button" id="exportButton">
+          <i data-lucide="download"></i>
+          <span>Export conversations</span>
+        </button>
+        <button class="sheet-row" type="button" id="clearButton">
+          <i data-lucide="trash-2"></i>
+          <span>Clear all conversations</span>
+        </button>
+        <button class="sheet-row" type="button" id="themeButton">
+          <i data-lucide="sun-moon"></i>
+          <span>Change theme</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sheet" id="accountSheet" hidden>
+      <div class="sheet__panel sheet__panel--wide" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <div class="sheet__header">
+          <h2 id="accountTitle">Account</h2>
+          <button class="icon-button" type="button" data-close-sheet aria-label="Close" title="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form class="account-form" id="accountForm">
+          <label class="account-field">
+            <span>Full name</span>
+            <input id="accountNameInput" type="text" autocomplete="name" placeholder="Example: Alex Morgan" />
+          </label>
+          <p class="form-hint" id="accountFormHint" hidden></p>
+          <button class="primary-sheet-button" type="submit">
+            <i data-lucide="user-plus"></i>
+            <span>Save and switch</span>
+          </button>
+        </form>
+        <div class="account-list" id="accountList" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="sheet" id="settingsSheet" hidden>
+      <div class="sheet__panel sheet__panel--wide" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="sheet__header">
+          <h2 id="settingsTitle">Settings</h2>
+          <button class="icon-button" type="button" data-close-sheet aria-label="Close" title="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="settings-list">
+          <label class="setting-row">
+            <span>
+              <strong>Compact messages</strong>
+              <small>Reduce spacing in long conversations.</small>
+            </span>
+            <input type="checkbox" id="compactToggle" />
+          </label>
+          <label class="setting-row">
+            <span>
+              <strong>Auto-name conversations</strong>
+              <small>Use the first message as the conversation title.</small>
+            </span>
+            <input type="checkbox" id="titleToggle" checked />
+          </label>
+          <label class="setting-row">
+            <span>
+              <strong>Response style</strong>
+              <small>Controls the assistant response style.</small>
+            </span>
+            <select id="toneSelect">
+              <option value="balanced">Balanced</option>
+              <option value="concise">Concise</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="script.js"></script>
+    <script src="adapter.js"></script>
+  </body>
+</html>
+
+
