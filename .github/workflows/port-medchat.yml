@@ -1,0 +1,509 @@
+name: Port exact MedChat GUI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/port-medchat.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  port-gui:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Hakeem AI
+        uses: actions/checkout@v4
+        with:
+          path: hakeem
+
+      - name: Checkout MedChat
+        uses: actions/checkout@v4
+        with:
+          repository: AMRYB/MedChat
+          ref: main
+          path: medchat
+
+      - name: Copy original GUI files
+        run: |
+          mkdir -p hakeem/public/medchat
+          cp medchat/gui/index.html hakeem/public/medchat/index.html
+          cp medchat/gui/styles.css hakeem/public/medchat/styles.css
+          cp medchat/gui/script.js hakeem/public/medchat/script.js
+
+      - name: Translate static HTML and wire adapters
+        working-directory: hakeem
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('public/medchat/index.html')
+          text = path.read_text(encoding='utf-8-sig')
+          text = text.replace('<html lang="ar" dir="rtl">', '<html lang="en" dir="ltr">')
+          text = text.replace('<title>medchat</title>', '<title>Hakeem AI</title>')
+          text = text.replace('<span>medchat</span>', '<span>Hakeem AI</span>')
+
+          replacements = {
+              'الشريط الجانبي للمحادثات': 'Conversation sidebar',
+              'فتح المنيو': 'Open menu',
+              'إظهار أو إخفاء الشريط الجانبي': 'Show or hide sidebar',
+              'محادثة جديدة': 'New chat',
+              'بحث في المحادثات': 'Search conversations',
+              'اختصارات': 'Shortcuts',
+              'المثبتة': 'Pinned',
+              'الشات': 'Chat',
+              'افتح الشريط الجانبي': 'Open sidebar',
+              'محادثة مؤقتة': 'Temporary chat',
+              'مشاركة المحادثة': 'Share conversation',
+              'مشاركة': 'Share',
+              'خيارات المحادثة': 'Conversation options',
+              'إيه اللي حاسس بيه؟': 'How are you feeling today?',
+              'عندي برد وكحة ورشح، أعمل إيه؟': 'I have a cold, cough, and runny nose. What should I do?',
+              'عندي برد': 'I have a cold',
+              'بطني وجعاني ومش مرتاح، ممكن أعرف أتعامل إزاي؟': 'My stomach hurts and I feel uncomfortable. What should I do?',
+              'بطني وجعاني': 'My stomach hurts',
+              'عندي صداع شديد ومش عارف سببه، أعمل إيه؟': 'I have a severe headache and I do not know why. What should I do?',
+              'صداع شديد': 'Severe headache',
+              'حرارتي عالية وحاسس بتعب، أتصرف إزاي؟': 'I have a fever and feel tired. What should I do?',
+              'حرارة وتعب': 'Fever and fatigue',
+              'الأدوات': 'Tools',
+              'قائمة الأدوات': 'Tools menu',
+              'إضافة صور وملفات': 'Add photos and files',
+              'الملفات الأخيرة': 'Recent files',
+              'اكتب اللي حاسس بيه': 'Message Hakeem AI',
+              'اختيار التفكير': 'Choose reasoning mode',
+              'عادي': 'Normal',
+              'التفكير العادي': 'Normal reasoning',
+              'التفكير المتقدم': 'Advanced reasoning',
+              'إدخال صوتي': 'Voice input',
+              'بدء محادثة جماعية': 'Start group chat',
+              'إعادة التسمية': 'Rename',
+              'تثبيت المحادثة': 'Pin conversation',
+              'أرشفة': 'Archive',
+              'حذف': 'Delete',
+              'خيارات الشات': 'Chat options',
+              'عرض الملفات في الشات': 'View chat files',
+              'إغلاق': 'Close',
+              'اكتب اسم المحادثة': 'Type a conversation name',
+              'مساحة العمل': 'Workspace',
+              'تغيير الأكونت': 'Account',
+              'تصدير المحادثات': 'Export conversations',
+              'مسح كل المحادثات': 'Clear all conversations',
+              'تغيير الثيم': 'Change theme',
+              'اسم ثنائي': 'Full name',
+              'مثال: عمرو ياسر': 'Example: Alex Morgan',
+              'حفظ وتبديل': 'Save and switch',
+              'الإعدادات': 'Settings',
+              'رسائل مضغوطة': 'Compact messages',
+              'تقليل المسافات في المحادثات الطويلة.': 'Reduce spacing in long conversations.',
+              'تسمية المحادثات تلقائيًا': 'Auto-name conversations',
+              'استخدام أول رسالة كعنوان للمحادثة.': 'Use the first message as the conversation title.',
+              'أسلوب الرد': 'Response style',
+              'يتحكم في نبرة مساعد الديمو المحلي.': 'Controls the assistant response style.',
+              'متوازن': 'Balanced',
+              'مختصر': 'Concise',
+              'مفصل': 'Detailed',
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+
+          text = text.replace('<link rel="stylesheet" href="styles.css" />', '<link rel="stylesheet" href="styles.css" />\n    <link rel="stylesheet" href="overrides.css" />')
+          text = text.replace('<script src="script.js"></script>', '<script src="script.js"></script>\n    <script src="adapter.js"></script>')
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Add English blue sidebar overrides
+        working-directory: hakeem
+        run: |
+          cat > public/medchat/overrides.css <<'CSS'
+          :root {
+            --hakeem-blue: #0b57d0;
+            --hakeem-blue-dark: #083b91;
+            --hakeem-blue-hover: rgba(255,255,255,.12);
+            --hakeem-blue-active: rgba(255,255,255,.18);
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          body { direction: ltr; font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+          .main-panel { direction: ltr; }
+          .sidebar {
+            direction: ltr;
+            background: linear-gradient(180deg, var(--hakeem-blue) 0%, var(--hakeem-blue-dark) 100%);
+            color: #fff;
+            border-left-color: rgba(255,255,255,.14);
+          }
+          .project-title,
+          .sidebar-search-button,
+          .quick-link,
+          .conversation-item,
+          .profile-button,
+          .rail-action { color: #fff; text-align: left; }
+          .project-title:hover,
+          .sidebar-search-button:hover,
+          .conversation-item:hover,
+          .profile-button:hover,
+          .rail-action:hover { background: var(--hakeem-blue-hover); }
+          .compose-button {
+            color: #fff;
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.12);
+          }
+          .compose-button:hover { background: rgba(255,255,255,.20); }
+          .conversation-item { color: rgba(255,255,255,.86); }
+          .conversation-item.is-active { background: var(--hakeem-blue-active); color: #fff; }
+          .conversation-group h3 { color: rgba(255,255,255,.64); text-align: left; }
+          .conversation-button { text-align: left; padding: 0 10px 0 4px; }
+          .conversation-action { color: rgba(255,255,255,.72); }
+          .conversation-action:hover { color: #fff; background: rgba(255,255,255,.14); }
+          .sidebar__bottom { border-top-color: rgba(255,255,255,.16); }
+          .avatar { background: #fff; color: var(--hakeem-blue); }
+          .profile-copy small { color: rgba(255,255,255,.68); }
+
+          .conversation-menu,
+          .dropdown,
+          .composer-plus-menu,
+          .sheet__panel { direction: ltr; }
+          .conversation-menu button,
+          .dropdown button,
+          .composer-plus-menu button,
+          .sheet-row,
+          .search-result,
+          .account-option { text-align: left; }
+          .conversation-rename-input,
+          .search-dialog__field input,
+          .account-field input { direction: ltr; text-align: left; }
+
+          .messages, .message { direction: ltr; }
+          .bubble { direction: ltr; text-align: left; }
+          .message__meta, .message-actions { direction: ltr; }
+          .composer__box { direction: ltr; }
+          #promptInput { direction: ltr; text-align: left; }
+          .thinking-mode-wrap { margin-left: 0; margin-right: 20px; }
+          .thinking-mode-menu { direction: ltr; left: auto; right: 0; }
+          .composer-plus-menu { direction: ltr; right: auto; left: -18px; }
+          .composer-plus-menu button svg:last-child:not(:first-child) { margin-right: 0; margin-left: auto; transform: none; }
+
+          .send-button { background: #0b57d0; }
+          .thinking-mode-button svg:first-child,
+          .empty-state__mark,
+          .message-action.is-loading { color: #0b57d0; }
+          .primary-sheet-button, .account-option__avatar { background: #0b57d0; }
+          .account-option:hover, .account-option.is-active { background: #eef5ff; border-color: #9fc3f7; }
+
+          @media (max-width: 860px) {
+            .sidebar { inset: 0 0 0 auto; }
+          }
+          CSS
+
+      - name: Connect original GUI to Hakeem backend
+        working-directory: hakeem
+        run: |
+          cat > public/medchat/adapter.js <<'JS'
+          (() => {
+            const TOKEN_KEY = "ddi_token";
+
+            const dictionary = new Map([
+              ["محادثة جديدة", "New chat"],
+              ["محادثة مؤقتة", "Temporary chat"],
+              ["مثبتة", "Pinned"],
+              ["اليوم", "Today"],
+              ["السابق", "Earlier"],
+              ["لا توجد نتائج", "No results"],
+              ["عادي", "Normal"],
+              ["متقدم", "Advanced"],
+              ["التفكير العادي", "Normal reasoning"],
+              ["التفكير المتقدم", "Advanced reasoning"],
+              ["إلغاء التثبيت", "Unpin conversation"],
+              ["تثبيت المحادثة", "Pin conversation"],
+              ["الأكونتات المحفوظة", "Saved accounts"],
+              ["الأكونت الحالي", "Current account"],
+              ["اضغط للتبديل", "Click to switch"],
+              ["كمل...", "Continue..."],
+              ["إرسال الرسالة", "Send message"],
+              ["إدخال صوتي", "Voice input"],
+              ["تم النسخ", "Copied"],
+              ["تم إرفاق الملفات", "Files attached"],
+              ["تم حذف المحادثة", "Conversation deleted"],
+              ["تم تغيير الثيم", "Theme changed"],
+              ["تم مسح المحادثات", "Conversations cleared"],
+              ["تم تجهيز التصدير", "Export ready"],
+              ["المشاركة قريبًا", "Sharing is coming soon"],
+              ["محادثة جماعية قريبًا", "Group chat is coming soon"],
+              ["الأرشفة قريبًا", "Archive is coming soon"],
+              ["عرض الملفات قريبًا", "File view is coming soon"],
+              ["لا توجد محادثات مثبتة", "No pinned conversations"],
+              ["هذه محادثة مؤقتة", "This is a temporary chat"],
+              ["تم تفعيل المحادثة المؤقتة", "Temporary chat enabled"],
+              ["جار تجهيز الصوت...", "Preparing audio..."],
+              ["تشغيل الصوت", "Playing audio"],
+              ["تعذر تشغيل الصوت", "Could not play audio"],
+              ["نسخ", "Copy"],
+              ["تعديل", "Edit"],
+              ["تشغيل الصوت", "Read aloud"],
+              ["إعادة المحاولة", "Regenerate"],
+              ["إزالة المرفق", "Remove attachment"],
+            ]);
+
+            function translateValue(value) {
+              if (!value) return value;
+              const leading = value.match(/^\s*/)?.[0] || "";
+              const trailing = value.match(/\s*$/)?.[0] || "";
+              const core = value.trim();
+              if (dictionary.has(core)) return `${leading}${dictionary.get(core)}${trailing}`;
+              return value
+                .replace(/(\d+) رسائل/g, "$1 messages")
+                .replace(/رسالة واحدة/g, "1 message");
+            }
+
+            function translateTree(root) {
+              if (!root) return;
+              const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+              const nodes = [];
+              while (walker.nextNode()) nodes.push(walker.currentNode);
+              nodes.forEach((node) => {
+                const next = translateValue(node.nodeValue || "");
+                if (next !== node.nodeValue) node.nodeValue = next;
+              });
+              if (root.querySelectorAll) {
+                root.querySelectorAll("[placeholder],[aria-label],[title]").forEach((el) => {
+                  ["placeholder", "aria-label", "title"].forEach((attr) => {
+                    if (!el.hasAttribute(attr)) return;
+                    const current = el.getAttribute(attr);
+                    const next = translateValue(current);
+                    if (next !== current) el.setAttribute(attr, next);
+                  });
+                });
+              }
+            }
+
+            const observer = new MutationObserver((mutations) => {
+              for (const mutation of mutations) {
+                if (mutation.type === "characterData") {
+                  const next = translateValue(mutation.target.nodeValue || "");
+                  if (next !== mutation.target.nodeValue) mutation.target.nodeValue = next;
+                }
+                mutation.addedNodes.forEach((node) => {
+                  if (node.nodeType === Node.ELEMENT_NODE) translateTree(node);
+                  if (node.nodeType === Node.TEXT_NODE) {
+                    const next = translateValue(node.nodeValue || "");
+                    if (next !== node.nodeValue) node.nodeValue = next;
+                  }
+                });
+                if (mutation.type === "attributes") translateTree(mutation.target);
+              }
+            });
+            observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["placeholder", "aria-label", "title"] });
+            translateTree(document.body);
+
+            async function hakeemFetch(path, options = {}) {
+              const token = localStorage.getItem(TOKEN_KEY);
+              if (!token) {
+                window.top.location.href = "/login";
+                throw new Error("Please sign in first.");
+              }
+              const headers = new Headers(options.headers || {});
+              if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+              headers.set("Authorization", `Bearer ${token}`);
+              const response = await fetch(path, { ...options, headers });
+              if (response.status === 401) {
+                localStorage.removeItem(TOKEN_KEY);
+                window.top.location.href = "/login";
+                throw new Error("Your session expired.");
+              }
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+              return data;
+            }
+
+            function dateValue(value) {
+              const n = new Date(value).getTime();
+              return Number.isFinite(n) ? n : Date.now();
+            }
+
+            async function loadServerMessages(chat) {
+              if (!chat?.backendSessionId || chat.backendLoaded || chat.backendLoading) return;
+              chat.backendLoading = true;
+              try {
+                const rows = await hakeemFetch(`/api/chat/sessions/${chat.backendSessionId}`);
+                chat.messages = rows.map((message) => ({
+                  id: message.id,
+                  role: message.role,
+                  content: message.content,
+                  citations: message.citations || [],
+                  createdAt: dateValue(message.created_at),
+                  model: "hakeem-ai",
+                }));
+                chat.backendLoaded = true;
+                chat.updatedAt = chat.messages.at(-1)?.createdAt || chat.updatedAt;
+                saveState();
+                if (currentChat()?.id === chat.id) {
+                  render();
+                  scrollToBottom();
+                }
+              } catch (error) {
+                console.error(error);
+                showToast(error.message || "Could not load conversation");
+              } finally {
+                chat.backendLoading = false;
+              }
+            }
+
+            async function hydrateBackend() {
+              if (!localStorage.getItem(TOKEN_KEY)) {
+                window.top.location.href = "/login";
+                return;
+              }
+              try {
+                const [sessions, profile] = await Promise.all([
+                  hakeemFetch("/api/chat/sessions"),
+                  hakeemFetch("/api/profile").catch(() => null),
+                ]);
+
+                if (profile?.name) {
+                  state.settings.userName = profile.name;
+                  state.settings.accounts = [profile.name];
+                }
+
+                state.chats = sessions.map((session) => ({
+                  id: session.id,
+                  backendSessionId: session.id,
+                  backendLoaded: false,
+                  title: session.title || "New chat",
+                  pinned: false,
+                  createdAt: dateValue(session.updated_at),
+                  updatedAt: dateValue(session.updated_at),
+                  messages: [],
+                }));
+
+                if (!state.chats.length) state.chats = [createBlankChat()];
+                state.currentChatId = state.chats[0].id;
+                saveState();
+                render();
+                translateTree(document.body);
+                await loadServerMessages(currentChat());
+              } catch (error) {
+                console.error(error);
+                showToast(error.message || "Could not sync conversations");
+              }
+            }
+
+            if (typeof formatDate === "function") {
+              formatDate = function(timestamp) {
+                return new Intl.DateTimeFormat("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                }).format(new Date(timestamp));
+              };
+            }
+
+            if (typeof speakText === "function") {
+              speakText = function(text) {
+                const clean = String(text || "").trim();
+                if (!clean) return;
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(clean);
+                utterance.lang = "en-US";
+                window.speechSynthesis.speak(utterance);
+                showToast("Reading response aloud");
+              };
+            }
+
+            simulateAssistant = async function(prompt) {
+              const chat = currentChat();
+              if (!chat) return;
+              const typingMessage = addMessage("assistant", "", { isTyping: true, model: "hakeem-ai" });
+              try {
+                const result = await hakeemFetch("/api/chat", {
+                  method: "POST",
+                  body: JSON.stringify({ message: prompt, session_id: chat.backendSessionId || null }),
+                });
+                chat.backendSessionId = result.session_id;
+                const target = chat.messages.find((message) => message.id === typingMessage.id);
+                if (target) {
+                  target.isTyping = false;
+                  target.content = result.answer;
+                  target.citations = result.citations || [];
+                  target.model = "hakeem-ai";
+                }
+                chat.updatedAt = Date.now();
+                saveState();
+                render();
+                translateTree(document.body);
+                scrollToBottom();
+              } catch (error) {
+                const target = chat.messages.find((message) => message.id === typingMessage.id);
+                if (target) {
+                  target.isTyping = false;
+                  target.content = `I could not complete that request. ${error.message || "Please try again."}`;
+                }
+                saveState();
+                render();
+                translateTree(document.body);
+              }
+            };
+
+            submitPrompt = async function(text = els.promptInput.value) {
+              const prompt = String(text || "").trim();
+              if (!prompt) return;
+              let chat = currentChat();
+              if (!chat) {
+                createChat();
+                chat = currentChat();
+              }
+              addMessage("user", prompt, {
+                attachments: state.attachments.map((file) => ({ name: file.name, size: file.size })),
+              });
+              els.promptInput.value = "";
+              state.attachments = [];
+              syncPromptInput();
+              renderAttachments();
+              await simulateAssistant(prompt);
+            };
+
+            els.conversationGroups.addEventListener("click", (event) => {
+              const button = event.target.closest("[data-chat-id]");
+              if (!button) return;
+              setTimeout(() => loadServerMessages(currentChat()), 0);
+            });
+
+            els.searchResults.addEventListener("click", (event) => {
+              const button = event.target.closest("[data-open-search-chat]");
+              if (!button) return;
+              setTimeout(() => loadServerMessages(currentChat()), 0);
+            });
+
+            hydrateBackend();
+          })();
+          JS
+
+      - name: Use original GUI at /chat
+        working-directory: hakeem
+        run: |
+          cat > app/chat/page.tsx <<'TSX'
+          export default function ChatPage() {
+            return (
+              <iframe
+                src="/medchat/index.html"
+                title="Hakeem AI chat"
+                style={{ width: "100vw", height: "100vh", border: 0, display: "block", background: "white" }}
+              />
+            );
+          }
+          TSX
+
+      - name: Commit exact GUI port
+        working-directory: hakeem
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/medchat app/chat/page.tsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Port exact MedChat GUI with English Hakeem adapter"
+            git push
+          fi
