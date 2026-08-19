@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000"
 
     database_url: str = "sqlite:///./ddi_app.db"
+    knowledge_database_url: str = "sqlite:///./ddi_app.db"
     rag_store: str = "auto"
     chroma_dir: str = "./chroma_db"
     dense_top_k: int = 20
@@ -69,10 +70,14 @@ class Settings(BaseSettings):
         return self.database_url.startswith("postgresql") or self.database_url.startswith("postgres")
 
     @property
+    def is_knowledge_postgres(self) -> bool:
+        return self.knowledge_database_url.startswith("postgresql") or self.knowledge_database_url.startswith("postgres")
+
+    @property
     def resolved_rag_store(self) -> str:
         if self.rag_store != "auto":
             return self.rag_store
-        return "pgvector" if self.is_postgres else "chroma"
+        return "pgvector" if self.is_knowledge_postgres else "chroma"
 
     @property
     def origins(self) -> list[str]:
