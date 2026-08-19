@@ -11,9 +11,17 @@ from sqlalchemy.orm import Session
 from backend.config import get_settings
 from backend.db import get_db
 from backend.dependencies import get_current_user, rate_limiter
-from backend.models import ChatMessage, ChatSession, User
+from backend.models import ChatMessage, ChatSession, MessageFeedback, User
 from backend.rag.service import answer_question
-from backend.schemas import ChatRequest, ChatResponse, Citation, MessageOut, SessionSummary
+from backend.schemas import (
+    ChatRequest,
+    ChatResponse,
+    Citation,
+    FeedbackIn,
+    FeedbackOut,
+    MessageOut,
+    SessionSummary,
+)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 settings = get_settings()
@@ -79,6 +87,7 @@ def chat(
 
     return ChatResponse(
         session_id=session.id,
+        message_id=assistant_message.id,
         answer=result.answer,
         citations=[Citation(**c) for c in result.citations],
         route=result.route,
@@ -105,7 +114,48 @@ def get_session_messages(session_id: str, db: Session = Depends(get_db), user: U
             role=m.role,
             content=m.content,
             citations=[Citation(**x) for x in json.loads(m.citations_json or "[]")],
+            feedback=m.feedback_record.value if m.feedback_record else None,
             created_at=m.created_at,
         )
         for m in messages
     ]
+
+
+@router.put("/messages/{message_id}/feedback", response_model=FeedbackOut)
+def set_message_feedback(
+    message_id: str,
+    payload: FeedbackIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    message = db.scalar(
+        select(ChatMessage)
+        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+        .where(
+            ChatMessage.id == message_id,
+            ChatMessage.role == "assistant",
+            ChatSession.user_id == user.id,
+        )
+    )
+    if not message:
+        raise HTTPException(status_code=404, detail="Assistant message not found")
+
+    feedback = db.get(MessageFeedback, message.id)
+    if payload.feedback is None:
+        if feedback:
+            db.delete(feedback)
+            db.commit()
+        return FeedbackOut(message_id=message.id, feedback=None)
+
+    if feedback:
+        feedback.value = payload.feedback
+        feedback.updated_at = datetime.now(timezone.utc)
+    else:
+        feedback = MessageFeedback(
+            message_id=message.id,
+            user_id=user.id,
+            value=payload.feedback,
+        )
+        db.add(feedback)
+    db.commit()
+    return FeedbackOut(message_id=message.id, feedback=payload.feedback)
