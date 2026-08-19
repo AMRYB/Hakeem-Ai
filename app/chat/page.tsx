@@ -35,6 +35,14 @@ export default function ChatPage() {
     }
   }
 
+  function ensureFeedbackSync(doc: Document) {
+    if (doc.querySelector("script[data-hakeem-feedback-sync]")) return;
+    const script = doc.createElement("script");
+    script.src = "/medchat/feedback-sync.js";
+    script.dataset.hakeemFeedbackSync = "true";
+    doc.body.appendChild(script);
+  }
+
   function handleFrameLoad(event: React.SyntheticEvent<HTMLIFrameElement>) {
     const frame = event.currentTarget;
     const doc = frame.contentDocument;
@@ -42,6 +50,7 @@ export default function ChatPage() {
 
     observerRef.current?.disconnect();
     enforceEnglishUi(doc);
+    ensureFeedbackSync(doc);
 
     const observer = new MutationObserver(() => enforceEnglishUi(doc));
     observer.observe(doc.documentElement, {
