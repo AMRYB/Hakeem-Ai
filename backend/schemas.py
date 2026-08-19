@@ -72,3 +72,16 @@ class FeedbackIn(BaseModel):
 class FeedbackOut(BaseModel):
     message_id: str
     feedback: Literal["up", "down"] | None = None
+
+
+class ShareOut(BaseModel):
+    chat_id: str
+    share_id: str
+    share_url: str
+
+
+class SharedChatOut(BaseModel):
+    chat_id: str
+    share_id: str
+    title: str
+    messages: list[MessageOut] = Field(default_factory=list)
