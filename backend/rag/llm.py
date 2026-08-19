@@ -78,6 +78,13 @@ class OpenAILLM(LLMProvider):
         content = message.get("content")
         return content.strip() if isinstance(content, str) else ""
 
+    @staticmethod
+    def _raise_gateway_error(response: httpx.Response) -> None:
+        if response.is_success:
+            return
+        body = (response.text or "").strip().replace("\n", " ")[:800]
+        raise RuntimeError(f"AI provider HTTP {response.status_code}: {body}")
+
     def generate(self, prompt: str) -> str:
         if not self.token:
             raise RuntimeError("No OpenAI/Vercel AI Gateway authentication token is available")
@@ -99,7 +106,7 @@ class OpenAILLM(LLMProvider):
                         "stream": False,
                     },
                 )
-                response.raise_for_status()
+                self._raise_gateway_error(response)
                 text = self._chat_output_text(response.json())
             else:
                 response = client.post(
@@ -110,7 +117,7 @@ class OpenAILLM(LLMProvider):
                         "input": prompt,
                     },
                 )
-                response.raise_for_status()
+                self._raise_gateway_error(response)
                 text = self._responses_output_text(response.json())
 
         if not text:
