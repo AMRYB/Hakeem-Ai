@@ -54,7 +54,7 @@ def _prepare_vercel_state_sqlite(database_url: str) -> str:
 
 
 state_database_url = _normalize_database_url(
-    _prepare_vercel_state_sqlite(settings.database_url)
+    _prepare_vercel_state_sqlite(settings.resolved_database_url)
 )
 knowledge_database_url = _normalize_database_url(settings.knowledge_database_url)
 
