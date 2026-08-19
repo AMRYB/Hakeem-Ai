@@ -3,6 +3,7 @@
   const FEEDBACK_CACHE_KEY = "hakeem-server-feedback-v1";
   const originalFetch = window.fetch.bind(window);
   let feedbackCache = loadFeedbackCache();
+  let uiFrame = 0;
 
   function loadFeedbackCache() {
     try {
@@ -37,11 +38,19 @@
     });
   }
 
+  function scheduleFeedbackUi() {
+    if (uiFrame) return;
+    uiFrame = requestAnimationFrame(() => {
+      uiFrame = 0;
+      applyFeedbackUi();
+    });
+  }
+
   async function syncCurrentFeedback() {
     const token = localStorage.getItem(TOKEN_KEY);
     const chat = typeof currentChat === "function" ? currentChat() : null;
     if (!token || !chat?.backendSessionId) {
-      applyFeedbackUi();
+      scheduleFeedbackUi();
       return;
     }
 
@@ -63,7 +72,7 @@
         }
       });
       saveFeedbackCache();
-      applyFeedbackUi();
+      scheduleFeedbackUi();
     } catch (error) {
       console.error("Could not sync message feedback", error);
     }
@@ -75,23 +84,27 @@
     const method = String(init?.method || "GET").toUpperCase();
 
     if (response.ok && method === "POST" && /\/api\/chat\/?$/.test(url)) {
-      response.clone().json().then((data) => {
-        if (!data?.message_id) return;
-        window.setTimeout(() => {
-          const chat = typeof currentChat === "function" ? currentChat() : null;
-          if (!chat?.messages) return;
-          const localMessage = [...chat.messages]
-            .reverse()
-            .find((message) => message.role === "assistant" && message.content === data.answer);
-          if (localMessage) {
-            localMessage.serverMessageId = data.message_id;
-            localMessage.feedback = null;
-          }
-          feedbackCache[data.message_id] = null;
-          saveFeedbackCache();
-          applyFeedbackUi();
-        }, 80);
-      }).catch(() => {});
+      response
+        .clone()
+        .json()
+        .then((data) => {
+          if (!data?.message_id) return;
+          window.setTimeout(() => {
+            const chat = typeof currentChat === "function" ? currentChat() : null;
+            if (!chat?.messages) return;
+            const localMessage = [...chat.messages]
+              .reverse()
+              .find((message) => message.role === "assistant" && message.content === data.answer);
+            if (localMessage) {
+              localMessage.serverMessageId = data.message_id;
+              localMessage.feedback = null;
+            }
+            feedbackCache[data.message_id] = null;
+            saveFeedbackCache();
+            scheduleFeedbackUi();
+          }, 80);
+        })
+        .catch(() => {});
     }
 
     return response;
@@ -115,7 +128,7 @@
       feedbackCache[serverId] = next;
       message.feedback = next;
       saveFeedbackCache();
-      window.setTimeout(applyFeedbackUi, 0);
+      scheduleFeedbackUi();
 
       originalFetch(`/api/chat/messages/${serverId}/feedback`, {
         method: "PUT",
@@ -136,13 +149,13 @@
           feedbackCache[serverId] = data.feedback ?? null;
           message.feedback = data.feedback ?? null;
           saveFeedbackCache();
-          applyFeedbackUi();
+          scheduleFeedbackUi();
         })
         .catch((error) => {
           feedbackCache[serverId] = previous;
           message.feedback = previous;
           saveFeedbackCache();
-          applyFeedbackUi();
+          scheduleFeedbackUi();
           if (typeof showToast === "function") showToast("Could not save feedback");
           console.error(error);
         });
@@ -156,8 +169,10 @@
     }
   });
 
-  const observer = new MutationObserver(() => applyFeedbackUi());
-  if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+  if (typeof els !== "undefined" && els.messages) {
+    const messageListObserver = new MutationObserver(() => scheduleFeedbackUi());
+    messageListObserver.observe(els.messages, { childList: true });
+  }
 
   window.setTimeout(syncCurrentFeedback, 450);
 })();
