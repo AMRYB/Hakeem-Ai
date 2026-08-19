@@ -1,7 +1,6 @@
-import os
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from sqlalchemy import func, select
 
 from backend.config import get_settings
@@ -15,29 +14,24 @@ settings = get_settings()
 
 
 @router.get("/health")
-def health(request: Request):
+def health():
     database_backend = "postgresql" if settings.is_postgres else "sqlite"
     aliases_available = Path(settings.drug_aliases_csv).exists()
     safety_patterns_available = Path(settings.safety_patterns_file).exists()
-    oidc_from_env = bool(os.getenv("VERCEL_OIDC_TOKEN"))
-    oidc_from_request = bool(request.headers.get("x-vercel-oidc-token"))
-    vercel_oidc_available = oidc_from_env or oidc_from_request
     free_test_db = Path("/tmp/hakeem_free_test.db").exists()
 
-    using_gateway_free_model = (
-        vercel_oidc_available
-        and settings.llm_provider == "ollama"
-        and settings.ollama_base_url.rstrip("/") == "http://localhost:11434"
-    )
-
-    if using_gateway_free_model:
-        llm_provider = "vercel_ai_gateway"
-        llm_model = "inclusionai/ling-3.0-flash-free"
+    if settings.groq_api_key:
+        llm_provider = "groq"
+        llm_model = settings.groq_model
         llm_remote_ready = True
     elif settings.llm_provider == "openai":
         llm_provider = "openai"
         llm_model = settings.openai_model
-        llm_remote_ready = bool(settings.openai_api_key or vercel_oidc_available)
+        llm_remote_ready = bool(settings.openai_api_key)
+    elif settings.llm_provider == "groq":
+        llm_provider = "groq"
+        llm_model = settings.groq_model
+        llm_remote_ready = bool(settings.groq_api_key)
     else:
         llm_provider = settings.llm_provider
         llm_model = settings.ollama_model
@@ -77,9 +71,9 @@ def health(request: Request):
             "drug_aliases": aliases_available,
             "safety_patterns": safety_patterns_available,
         },
-        "vercel_oidc_available": vercel_oidc_available,
         "free_test_mode": free_test_db,
         "free_test_ready": free_test_ready,
+        "missing_for_free_test": [] if free_test_ready else (["GROQ_API_KEY"] if not settings.groq_api_key else []),
         "production_ready": production_ready,
     }
 
@@ -92,8 +86,8 @@ def smoke_test():
         pair = ddi_pair_lookup(db, "Acetylsalicylic acid", "Warfarin")
         rag_hits = retrieve(
             db,
-            "What are the side effects of acetaminophen?",
-            ["Acetaminophen"],
+            "What are the adverse reactions of Amikacin?",
+            ["Amikacin"],
             "single_drug_info",
         )
 
@@ -112,12 +106,13 @@ def smoke_test():
             "aspirin_warfarin_pair_found": bool(pair),
         },
         "rag": {
-            "acetaminophen_hits": len(rag_hits),
+            "amikacin_hits": len(rag_hits),
             "first_source": rag_hits[0].source_type if rag_hits else None,
         },
         "ai": {
             "reply": ai_reply,
             "error": ai_error,
-            "model": "inclusionai/ling-3.0-flash-free",
+            "provider": "groq" if settings.groq_api_key else "not_configured",
+            "model": settings.groq_model,
         },
     }
