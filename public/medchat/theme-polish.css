@@ -35,6 +35,12 @@
   background: transparent !important;
 }
 
+/* Active conversation stays transparent in every theme. */
+.conversation-item.is-active,
+.conversation-item.is-active:hover {
+  background: transparent !important;
+}
+
 /* User avatar: blue on light theme. */
 .message--user .message__avatar {
   background: #0b57d0 !important;
@@ -74,6 +80,11 @@
 }
 
 :root[data-theme="dark"] .conversation-item.is-active,
+:root[data-theme="dark"] .conversation-item.is-active:hover {
+  background: transparent !important;
+  color: #fff !important;
+}
+
 :root[data-theme="dark"] .quick-link.is-active {
   background: var(--hakeem-blue) !important;
   color: #fff !important;
