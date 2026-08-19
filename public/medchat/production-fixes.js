@@ -137,6 +137,20 @@
     );
   }
 
+  const accountButton = document.getElementById("changeAccountButton");
+  if (accountButton) {
+    accountButton.addEventListener(
+      "click",
+      (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.top.location.href = "/onboarding";
+      },
+      true,
+    );
+    accountButton.querySelector("span")?.replaceChildren("Medication profile");
+  }
+
   if (typeof speakText === "function") {
     speakText = async function elevenLabsSpeak(text) {
       const clean = String(text || "").trim();
@@ -182,7 +196,7 @@
 
   document.querySelector(".thinking-mode-wrap")?.remove();
   document.querySelector("#temporaryChatButton")?.remove();
-  document.querySelector('[data-plus-action="recent"]')?.remove();
+  document.querySelector(".composer-plus-wrap")?.remove();
 
   document.querySelectorAll(
     '[data-menu-action="group"], [data-menu-action="archive"], [data-menu-action="pin"], [data-top-menu-action="group"], [data-top-menu-action="files"], [data-top-menu-action="archive"], [data-top-menu-action="pin"]',
