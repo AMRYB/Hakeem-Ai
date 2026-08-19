@@ -97,10 +97,15 @@ def smoke_test():
             "single_drug_info",
         )
 
-    ai_reply = get_llm().generate("Reply with exactly: OK")
+    ai_reply = None
+    ai_error = None
+    try:
+        ai_reply = get_llm().generate("Reply with exactly: OK")[:40]
+    except Exception as exc:
+        ai_error = str(exc)[:1000]
 
     return {
-        "status": "ok",
+        "status": "ok" if ai_reply else "partial",
         "database": {
             "ddi_pairs": ddi_count,
             "rag_chunks": rag_count,
@@ -111,7 +116,8 @@ def smoke_test():
             "first_source": rag_hits[0].source_type if rag_hits else None,
         },
         "ai": {
-            "reply": ai_reply[:40],
+            "reply": ai_reply,
+            "error": ai_error,
             "model": "inclusionai/ling-3.0-flash-free",
         },
     }
