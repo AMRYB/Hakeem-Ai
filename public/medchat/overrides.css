@@ -7,13 +7,27 @@
 }
 
 body { direction: ltr; font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-.main-panel { direction: ltr; }
+
+/* Keep the exact MedChat layout, but place the sidebar on the left. */
+.app-shell {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+}
+.app-shell[data-sidebar="closed"] {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+}
 .sidebar {
+  grid-column: 1;
   direction: ltr;
   background: linear-gradient(180deg, var(--hakeem-blue) 0%, var(--hakeem-blue-dark) 100%);
   color: #fff;
-  border-left-color: rgba(255,255,255,.14);
+  border-left: 0;
+  border-right: 1px solid rgba(255,255,255,.14);
 }
+.main-panel {
+  grid-column: 2;
+  direction: ltr;
+}
+
 .project-title,
 .sidebar-search-button,
 .quick-link,
@@ -60,7 +74,13 @@ body { direction: ltr; font-family: "Inter", system-ui, -apple-system, BlinkMacS
 .message__meta, .message-actions { direction: ltr; }
 .composer__box { direction: ltr; }
 #promptInput { direction: ltr; text-align: left; }
-.thinking-mode-wrap { margin-left: 0; margin-right: 20px; }
+
+/* Nudge the reasoning selector a little to the left, as requested. */
+.thinking-mode-wrap {
+  margin-left: 0;
+  margin-right: 20px;
+  transform: translateX(-14px);
+}
 .thinking-mode-menu { direction: ltr; left: auto; right: 0; }
 .composer-plus-menu { direction: ltr; right: auto; left: -18px; }
 .composer-plus-menu button svg:last-child:not(:first-child) { margin-right: 0; margin-left: auto; transform: none; }
@@ -73,5 +93,12 @@ body { direction: ltr; font-family: "Inter", system-ui, -apple-system, BlinkMacS
 .account-option:hover, .account-option.is-active { background: #eef5ff; border-color: #9fc3f7; }
 
 @media (max-width: 860px) {
-  .sidebar { inset: 0 0 0 auto; }
+  .sidebar {
+    inset: 0 auto 0 0;
+    border-right: 1px solid rgba(255,255,255,.14);
+    border-left: 0;
+  }
+  .thinking-mode-wrap {
+    transform: translateX(-8px);
+  }
 }
