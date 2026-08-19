@@ -49,19 +49,14 @@
       prompt: "What is the active ingredient in Panadol, and what does it do?",
     },
     {
-      icon: "scale",
-      label: "Panadol vs paracetamol?",
-      prompt: "What is the difference between Panadol and paracetamol?",
+      icon: "activity",
+      label: "Amikacin monitoring?",
+      prompt: "What should be monitored while taking Amikacin?",
     },
     {
       icon: "shield-alert",
       label: "Aspirin with warfarin?",
       prompt: "Can I take aspirin with warfarin? What interaction should I know about?",
-    },
-    {
-      icon: "refresh-cw",
-      label: "Can these medicines interact?",
-      prompt: "How can I tell if one medicine may interact with another medicine I am taking?",
     },
   ];
 
@@ -86,9 +81,15 @@
       }
       if (els.suggestionGrid) {
         const buttons = Array.from(els.suggestionGrid.querySelectorAll("button"));
-        medicationPrompts.forEach((item, index) => {
-          const button = buttons[index];
-          if (!button) return;
+
+        // Keep only the medication starters defined above. This removes the old
+        // generic "Can these medicines interact?" fourth chip from the empty state.
+        buttons.forEach((button, index) => {
+          const item = medicationPrompts[index];
+          if (!item) {
+            button.remove();
+            return;
+          }
           button.dataset.prompt = item.prompt;
           button.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
         });
