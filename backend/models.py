@@ -92,6 +92,26 @@ class MessageFeedback(Base):
     message = relationship("ChatMessage", back_populates="feedback_record")
 
 
+class ChatShare(Base):
+    __tablename__ = "chat_shares"
+
+    token: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("chat_sessions.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
 class DdiPair(Base):
     __tablename__ = "ddi_pairs"
     __table_args__ = (
