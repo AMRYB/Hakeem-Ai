@@ -92,6 +92,308 @@ body { direction: ltr; font-family: "Inter", system-ui, -apple-system, BlinkMacS
 .primary-sheet-button, .account-option__avatar { background: #0b57d0; }
 .account-option:hover, .account-option.is-active { background: #eef5ff; border-color: #9fc3f7; }
 
+/* Extra assistant controls */
+.message-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.message-action-separator {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.hakeem-feedback-button.is-selected {
+  color: var(--hakeem-blue);
+  background: #eaf2ff;
+}
+
+.evidence-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  margin-left: 5px;
+  padding: 0 9px;
+  border: 1px solid #dce7f8;
+  border-radius: 999px;
+  background: #f7faff;
+  color: #174ea6;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.evidence-button:hover {
+  background: #eaf2ff;
+  border-color: #b9cff3;
+}
+
+.evidence-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.evidence-button b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dbe8fb;
+  color: #174ea6;
+  font-size: 10px;
+}
+
+.response-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  margin-left: 5px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f4f5f7;
+  color: #697386;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.response-time-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.composer-icon-button.is-listening {
+  color: #fff;
+  background: #d93025;
+  animation: hakeem-mic-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes hakeem-mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217,48,37,.22); }
+  50% { box-shadow: 0 0 0 7px rgba(217,48,37,0); }
+}
+
+/* Evidence drawer */
+.feature-drawer-backdrop,
+.feature-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  background: rgba(15, 23, 42, .28);
+  backdrop-filter: blur(2px);
+}
+
+.feature-drawer-backdrop[hidden],
+.feature-modal[hidden] {
+  display: none;
+}
+
+.feature-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 94vw);
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -20px 0 60px rgba(15,23,42,.16);
+  direction: ltr;
+}
+
+.feature-drawer__header,
+.feature-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.feature-drawer__header {
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.feature-drawer__header h2,
+.feature-modal__header h2 {
+  margin: 3px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.feature-drawer__eyebrow {
+  color: var(--hakeem-blue);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.feature-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.feature-icon-button:hover { background: var(--panel-strong); }
+.feature-icon-button svg { width: 19px; height: 19px; }
+
+.feature-drawer__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px 28px;
+}
+
+.evidence-card {
+  padding: 15px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
+.evidence-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.evidence-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: var(--hakeem-blue);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.evidence-card__top > div {
+  display: grid;
+  min-width: 0;
+}
+
+.evidence-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.evidence-card small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.evidence-card p {
+  margin: 12px 0 0;
+  color: var(--muted-strong);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.feature-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 260px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.feature-empty svg { width: 28px; height: 28px; }
+
+/* Export modal */
+.feature-modal {
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.feature-modal__panel {
+  width: min(520px, 100%);
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  direction: ltr;
+}
+
+.feature-modal__panel > p {
+  margin: 16px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.feature-export-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.feature-export-actions button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.feature-export-actions button:hover {
+  border-color: #a9c5ef;
+  background: #f5f9ff;
+}
+
+.feature-export-actions button > svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  color: var(--hakeem-blue);
+}
+
+.feature-export-actions button span {
+  display: grid;
+  min-width: 0;
+}
+
+.feature-export-actions button strong { font-size: 13px; }
+.feature-export-actions button small { margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+body.feature-overlay-open { overflow: hidden; }
+
 @media (max-width: 860px) {
   .sidebar {
     inset: 0 auto 0 0;
@@ -101,4 +403,13 @@ body { direction: ltr; font-family: "Inter", system-ui, -apple-system, BlinkMacS
   .thinking-mode-wrap {
     transform: translateX(-8px);
   }
+  .response-time-badge {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .feature-export-actions { grid-template-columns: 1fr; }
+  .evidence-button span { display: none; }
+  .message-action-separator { display: none; }
 }
