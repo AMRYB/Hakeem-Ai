@@ -1,0 +1,54 @@
+{
+  "pregnancy": {
+    "aliases": ["pregnant", "pregnancy", "trimester", "fetal", "foetal"],
+    "sections": ["pregnancy", "lactation", "contraindication", "warning", "precaution"]
+  },
+  "breastfeeding": {
+    "aliases": ["breastfeed", "breastfeeding", "lactation", "nursing", "breast milk"],
+    "sections": ["pregnancy", "lactation", "warning", "precaution"]
+  },
+  "asthma": {
+    "aliases": ["asthma", "bronchial asthma", "bronchospasm", "bronchospastic", "respiratory disease", "reactive airway"],
+    "sections": ["contraindication", "warning", "precaution", "monitoring"]
+  },
+  "renal_impairment": {
+    "aliases": ["kidney", "renal", "renal impairment", "renal disease", "renal insufficiency", "kidney disease"],
+    "sections": ["dosage adjustment", "contraindication", "warning", "precaution", "monitoring"]
+  },
+  "hepatic_impairment": {
+    "aliases": ["liver", "hepatic", "hepatic impairment", "liver disease", "hepatic disease"],
+    "sections": ["dosage adjustment", "contraindication", "warning", "precaution", "monitoring"]
+  },
+  "allergy": {
+    "aliases": ["allergy", "allergic", "hypersensitivity", "anaphylaxis", "anaphylactic"],
+    "sections": ["contraindication", "warning", "precaution"]
+  },
+  "diabetes": {
+    "aliases": ["diabetes", "diabetic", "hypoglycemia", "hypoglycaemia", "blood sugar", "glucose"],
+    "sections": ["contraindication", "warning", "precaution", "monitoring", "dosage adjustment"]
+  },
+  "heart_failure": {
+    "aliases": ["heart failure", "cardiac failure"],
+    "sections": ["contraindication", "warning", "precaution", "monitoring"]
+  },
+  "bradycardia": {
+    "aliases": ["bradycardia", "slow heart rate", "low heart rate"],
+    "sections": ["contraindication", "warning", "precaution", "monitoring"]
+  },
+  "hypertension": {
+    "aliases": ["hypertension", "high blood pressure"],
+    "sections": ["indication", "contraindication", "warning", "precaution", "monitoring"]
+  },
+  "hypotension": {
+    "aliases": ["hypotension", "low blood pressure"],
+    "sections": ["contraindication", "warning", "precaution", "monitoring"]
+  },
+  "elderly": {
+    "aliases": ["elderly", "older adult", "geriatric", "age 65", "65 years"],
+    "sections": ["dosage adjustment", "warning", "precaution", "monitoring"]
+  },
+  "pediatric": {
+    "aliases": ["child", "children", "pediatric", "paediatric", "infant", "adolescent"],
+    "sections": ["dosage regimen", "dosage adjustment", "warning", "precaution", "monitoring"]
+  }
+}

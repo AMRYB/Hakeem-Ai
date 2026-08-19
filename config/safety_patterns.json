@@ -1,0 +1,45 @@
+{
+  "bleeding": [
+    "\\bunusual bleeding\\b",
+    "\\bsevere bleeding\\b",
+    "\\bheavy bleeding\\b",
+    "\\bbleeding (that )?(won't|will not) stop\\b",
+    "\\bvomit(ing)? blood\\b",
+    "\\bblood in (my )?stool\\b",
+    "\\bblack(,)? tarry stool(s)?\\b"
+  ],
+  "breathing": [
+    "\\bdifficulty breathing\\b",
+    "\\btrouble breathing\\b",
+    "\\bcan't breathe\\b",
+    "\\bcannot breathe\\b",
+    "\\bshortness of breath\\b"
+  ],
+  "allergic_reaction": [
+    "\\bsevere allergic reaction\\b",
+    "\\banaphylaxis\\b",
+    "\\bswelling of (the )?(face|throat|tongue)\\b",
+    "\\bface swelling\\b",
+    "\\bthroat swelling\\b"
+  ],
+  "neurologic": [
+    "\\bloss of consciousness\\b",
+    "\\bunconscious\\b",
+    "\\bseizure(s)?\\b",
+    "\\bconvulsion(s)?\\b"
+  ],
+  "overdose": [
+    "\\boverdose(d)?\\b",
+    "\\btook too much\\b",
+    "\\baccidentally took .* (extra|double)\\b"
+  ],
+  "chest_pain": [
+    "\\bsevere chest pain\\b",
+    "\\bcrushing chest pain\\b"
+  ],
+  "severe_symptoms": [
+    "\\bsevere symptoms\\b",
+    "\\blife[- ]threatening\\b",
+    "\\bmedical emergency\\b"
+  ]
+}

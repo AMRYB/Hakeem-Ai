@@ -1,0 +1,5 @@
+alias,canonical_name,alias_type,provenance,provenance_url,notes
+Panadol,Acetaminophen,brand/synonym,NIH PubChem CID 1983,https://pubchem.ncbi.nlm.nih.gov/compound/1983,Normalization to DDInter's Acetaminophen naming; combination Panadol variants require exact ingredients.
+Paracetamol,Acetaminophen,synonym,NIH PubChem CID 1983,https://pubchem.ncbi.nlm.nih.gov/compound/1983,International generic-name synonym used to match DDInter's Acetaminophen naming.
+Aspirin,Acetylsalicylic acid,synonym,NIH PubChem CID 2244,https://pubchem.ncbi.nlm.nih.gov/compound/2244,Synonym normalization for DDInter naming.
+Antinal,Nifuroxazide,brand,Saudi Food and Drug Authority drug information,https://sdi.sfda.gov.sa/home/Result?drugId=11338,Brand-to-active-ingredient normalization only; absence of Nifuroxazide interaction evidence must still cause refusal.

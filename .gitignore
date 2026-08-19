@@ -1,0 +1,39 @@
+# =========================
+# Environment / secrets
+# =========================
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# =========================
+# Python
+# =========================
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# =========================
+# Next.js / Node
+# =========================
+.next/
+node_modules/
+
+# =========================
+# Generated/cache files
+# =========================
+models_cache/
+tsconfig.tsbuildinfo
+coverage.xml
+htmlcov/
+outputs/
+
+# =========================
+# OS / editor
+# =========================
+.DS_Store
+Thumbs.db
