@@ -35,6 +35,33 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
             return response.json()["embeddings"]
 
 
+class OpenAIEmbeddingProvider(EmbeddingProvider):
+    def __init__(self):
+        self.base = settings.openai_api_base.rstrip("/")
+        self.model = settings.openai_embedding_model
+
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        if not settings.openai_api_key:
+            raise RuntimeError("OPENAI_API_KEY is not configured")
+
+        with httpx.Client(timeout=settings.llm_timeout_seconds) as client:
+            response = client.post(
+                f"{self.base}/embeddings",
+                headers={
+                    "Authorization": f"Bearer {settings.openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={"model": self.model, "input": list(texts)},
+            )
+            response.raise_for_status()
+            rows = response.json().get("data") or []
+            rows = sorted(rows, key=lambda row: int(row.get("index", 0)))
+            vectors = [row.get("embedding") for row in rows]
+            if len(vectors) != len(texts) or any(not isinstance(vector, list) for vector in vectors):
+                raise RuntimeError("OpenAI embeddings response was incomplete")
+            return [[float(value) for value in vector] for vector in vectors]
+
+
 class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
     def __init__(self):
         from sentence_transformers import SentenceTransformer
@@ -55,6 +82,8 @@ class SentenceTransformerEmbeddingProvider(EmbeddingProvider):
 def get_embedding_provider() -> EmbeddingProvider:
     if settings.embedding_provider == "ollama":
         return OllamaEmbeddingProvider()
+    if settings.embedding_provider == "openai":
+        return OpenAIEmbeddingProvider()
     if settings.embedding_provider == "sentence_transformers":
         return SentenceTransformerEmbeddingProvider()
     raise RuntimeError(f"Unsupported EMBEDDING_PROVIDER={settings.embedding_provider}")
