@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/sync-medchat-gui.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-medchat-gui.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit"
