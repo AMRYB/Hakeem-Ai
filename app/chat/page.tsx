@@ -5,6 +5,7 @@ export default function ChatPage() {
     if (doc.querySelector(`script[data-${marker}]`)) return;
     const script = doc.createElement("script");
     script.src = src;
+    script.async = false;
     script.dataset[marker.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = "true";
     doc.body.appendChild(script);
   }
@@ -14,6 +15,8 @@ export default function ChatPage() {
     if (!doc) return;
     ensureScript(doc, "/medchat/feedback-sync.js", "hakeem-feedback-sync");
     ensureScript(doc, "/medchat/production-fixes.js", "hakeem-production-fixes");
+    ensureScript(doc, "/medchat/response-ui.js", "hakeem-response-ui");
+    ensureScript(doc, "/medchat/mobile-app.js", "hakeem-mobile-app");
   }
 
   return (
