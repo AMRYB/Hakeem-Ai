@@ -22,6 +22,7 @@ from backend.schemas import (
     FeedbackOut,
     MessageOut,
     SessionSummary,
+    SessionTitleIn,
     ShareOut,
     SharedChatOut,
 )
@@ -116,6 +117,16 @@ def list_sessions(db: Session = Depends(get_db), user: User = Depends(get_curren
     return [SessionSummary(id=s.id, title=s.title, updated_at=s.updated_at) for s in sessions]
 
 
+@router.delete("/sessions")
+def clear_sessions(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    sessions = db.scalars(select(ChatSession).where(ChatSession.user_id == user.id)).all()
+    deleted = len(sessions)
+    for session in sessions:
+        db.delete(session)
+    db.commit()
+    return {"deleted": True, "count": deleted}
+
+
 @router.get("/sessions/{session_id}", response_model=list[MessageOut])
 def get_session_messages(session_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     session = _owned_session(db, session_id, user.id)
@@ -123,6 +134,21 @@ def get_session_messages(session_id: str, db: Session = Depends(get_db), user: U
         select(ChatMessage).where(ChatMessage.session_id == session.id).order_by(ChatMessage.created_at)
     ).all()
     return [_message_out(message) for message in messages]
+
+
+@router.put("/sessions/{session_id}/title", response_model=SessionSummary)
+def rename_session(
+    session_id: str,
+    payload: SessionTitleIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    session = _owned_session(db, session_id, user.id)
+    session.title = payload.title.strip()
+    session.updated_at = datetime.now(timezone.utc)
+    db.add(session)
+    db.commit()
+    return SessionSummary(id=session.id, title=session.title, updated_at=session.updated_at)
 
 
 @router.delete("/sessions/{session_id}")
