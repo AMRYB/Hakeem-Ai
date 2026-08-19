@@ -1,6 +1,40 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import HakeemLoader from "@/components/HakeemLoader";
+import { getToken } from "@/lib/api";
+
+type Theme = "light" | "dark";
+
+function readTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  try {
+    const raw = localStorage.getItem("medchat-state-v1");
+    if (raw) {
+      const theme = JSON.parse(raw)?.settings?.theme;
+      if (theme === "dark" || theme === "light") return theme;
+    }
+  } catch {
+    // Use system preference below.
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function ChatPage() {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useEffect(() => {
+    setTheme(readTheme());
+    if (!getToken()) {
+      router.replace("/signup");
+      return;
+    }
+    setAuthorized(true);
+  }, [router]);
+
   function ensureScript(doc: Document, src: string, marker: string) {
     if (doc.querySelector(`script[data-${marker}]`)) return;
     const script = doc.createElement("script");
@@ -29,13 +63,17 @@ export default function ChatPage() {
     ensureStylesheet(doc, "/medchat/theme-polish.css", "hakeem-theme-polish");
   }
 
+  if (!authorized) {
+    return <HakeemLoader fullscreen theme={theme} label="Opening Hakeem…" />;
+  }
+
   return (
     <iframe
       src="/medchat/index.html"
-      title="Hakeem AI chat"
+      title="Hakeem chat"
       allow="microphone"
       onLoad={handleFrameLoad}
-      style={{ width: "100vw", height: "100vh", border: 0, display: "block", background: "white" }}
+      style={{ width: "100vw", height: "100vh", border: 0, display: "block", background: theme === "dark" ? "#111" : "white" }}
     />
   );
 }
