@@ -57,6 +57,7 @@ export default function ChatPage() {
     <iframe
       src="/medchat/index.html"
       title="Hakeem AI chat"
+      allow="microphone"
       onLoad={handleFrameLoad}
       style={{ width: "100vw", height: "100vh", border: 0, display: "block", background: "white" }}
     />
