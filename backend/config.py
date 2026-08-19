@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     ollama_api_key: str = ""
     ollama_model: str = "qwen2.5:latest"
 
+    groq_api_base: str = "https://api.groq.com/openai/v1"
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-20b"
+
     openai_api_base: str = "https://api.openai.com/v1"
     openai_api_key: str = ""
     openai_model: str = "gpt-5.4-mini"
@@ -79,6 +83,8 @@ class Settings(BaseSettings):
             raise RuntimeError("SECRET_KEY must be changed in production")
         if self.app_env.lower() == "production" and not self.profile_encryption_key:
             raise RuntimeError("PROFILE_ENCRYPTION_KEY must be set in production")
+        if self.app_env.lower() == "production" and self.llm_provider == "groq" and not self.groq_api_key:
+            raise RuntimeError("GROQ_API_KEY must be set when LLM_PROVIDER=groq in production")
         if self.app_env.lower() == "production" and self.llm_provider == "openai" and not self.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY must be set when LLM_PROVIDER=openai in production")
         if self.app_env.lower() == "production" and self.embedding_provider == "openai" and not self.openai_api_key:
