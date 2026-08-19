@@ -42,6 +42,133 @@
     return chat?.backendSessionId || (/^[0-9a-f-]{36}$/i.test(chat?.id || "") ? chat.id : null);
   }
 
+  const medicationPrompts = [
+    {
+      icon: "pill",
+      label: "Active ingredient in Panadol?",
+      prompt: "What is the active ingredient in Panadol, and what does it do?",
+    },
+    {
+      icon: "scale",
+      label: "Panadol vs paracetamol?",
+      prompt: "What is the difference between Panadol and paracetamol?",
+    },
+    {
+      icon: "shield-alert",
+      label: "Aspirin with warfarin?",
+      prompt: "Can I take aspirin with warfarin? What interaction should I know about?",
+    },
+    {
+      icon: "refresh-cw",
+      label: "Can these medicines interact?",
+      prompt: "How can I tell if one medicine may interact with another medicine I am taking?",
+    },
+  ];
+
+  function applyMedicationStarterUi() {
+    const chat = typeof currentChat === "function" ? currentChat() : null;
+    const isEmpty = !chat?.messages?.length;
+
+    if (typeof els !== "undefined") {
+      if (els.promptInput) {
+        els.promptInput.placeholder = isEmpty ? "Message Hakeem" : "Continue...";
+        els.promptInput.setAttribute("dir", "ltr");
+        els.promptInput.setAttribute("lang", "en");
+      }
+      if (els.emptyState) {
+        els.emptyState.hidden = !isEmpty;
+        const heading = els.emptyState.querySelector("h1");
+        if (heading) heading.textContent = "How are you feeling today?";
+      }
+      if (els.chatView) {
+        els.chatView.classList.toggle("is-empty", isEmpty);
+        els.chatView.classList.remove("has-draft");
+      }
+      if (els.suggestionGrid) {
+        const buttons = Array.from(els.suggestionGrid.querySelectorAll("button"));
+        medicationPrompts.forEach((item, index) => {
+          const button = buttons[index];
+          if (!button) return;
+          button.dataset.prompt = item.prompt;
+          button.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
+        });
+      }
+    }
+
+    document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
+    document.body.dir = "ltr";
+
+    const send = document.getElementById("sendButton");
+    if (send) {
+      send.setAttribute("aria-label", "Send message");
+      send.setAttribute("title", "Send message");
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  if (typeof createBlankChat === "function") {
+    const originalCreateBlankChat = createBlankChat;
+    createBlankChat = function englishBlankChat() {
+      const chat = originalCreateBlankChat();
+      chat.title = "New chat";
+      return chat;
+    };
+  }
+
+  if (typeof syncChatViewState === "function") {
+    const originalSyncChatViewState = syncChatViewState;
+    syncChatViewState = function stableEnglishChatViewState() {
+      originalSyncChatViewState();
+      applyMedicationStarterUi();
+    };
+  }
+
+  if (typeof render === "function") {
+    const originalRender = render;
+    render = function stableEnglishRender() {
+      originalRender();
+      applyMedicationStarterUi();
+    };
+  }
+
+  if (typeof addMessage === "function") {
+    const originalAddMessage = addMessage;
+    addMessage = function englishAutoTitle(role, content, metadata = {}) {
+      const chat = typeof currentChat === "function" ? currentChat() : null;
+      const shouldAutoTitle = Boolean(
+        chat &&
+          role === "user" &&
+          state?.settings?.autoTitle &&
+          (chat.title === "New chat" || chat.title === "محادثة جديدة" || !chat.title),
+      );
+      const message = originalAddMessage(role, content, metadata);
+      if (shouldAutoTitle && chat) {
+        chat.title = String(content || "").replace(/\s+/g, " ").trim().slice(0, 58) || "New chat";
+        chat.updatedAt = Date.now();
+        if (typeof saveState === "function") saveState();
+        if (typeof renderSidebar === "function") renderSidebar();
+      }
+      applyMedicationStarterUi();
+      return message;
+    };
+  }
+
+  if (typeof state !== "undefined" && Array.isArray(state.chats)) {
+    const starterTitles = new Set(["ترتيب الأعراض", "متابعة حرارة وتعب"]);
+    state.chats = state.chats.filter((chat) => !starterTitles.has(chat?.title));
+    state.chats.forEach((chat) => {
+      if (chat?.title === "محادثة جديدة") chat.title = "New chat";
+      if (chat?.title === "محادثة مؤقتة") chat.title = "Temporary chat";
+    });
+    if (!state.chats.length && typeof createBlankChat === "function") {
+      state.chats = [createBlankChat()];
+      state.currentChatId = state.chats[0].id;
+    }
+    if (typeof saveState === "function") saveState();
+  }
+
   const originalDeleteChat = typeof deleteChat === "function" ? deleteChat : null;
   if (originalDeleteChat) {
     deleteChat = async function persistentDeleteChat(chatId) {
@@ -56,6 +183,7 @@
         }
       }
       originalDeleteChat(chatId);
+      applyMedicationStarterUi();
       showToast("Conversation deleted");
     };
   }
@@ -202,9 +330,5 @@
     '[data-menu-action="group"], [data-menu-action="archive"], [data-menu-action="pin"], [data-top-menu-action="group"], [data-top-menu-action="files"], [data-top-menu-action="archive"], [data-top-menu-action="pin"]',
   ).forEach((button) => button.remove());
 
-  const sendButton = document.getElementById("sendButton");
-  if (sendButton) {
-    sendButton.setAttribute("aria-label", "Send message");
-    sendButton.setAttribute("title", "Send message");
-  }
+  applyMedicationStarterUi();
 })();
