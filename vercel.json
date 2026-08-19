@@ -5,5 +5,11 @@
       "maxDuration": 300,
       "excludeFiles": "{tests/**,data/egypt/**,data/ddinter/**,data/formulary/**,chroma_db/**,BUILD_SPEC.md,**/__pycache__/**}"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    }
+  ]
 }
