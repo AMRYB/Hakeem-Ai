@@ -34,7 +34,7 @@ export default function DemoPage() {
     setTheme(readTheme());
 
     if (!getToken()) {
-      router.replace("/signup");
+      router.replace("/signup?next=%2Fdemo");
       return;
     }
 
@@ -44,7 +44,7 @@ export default function DemoPage() {
       .then((profile) => {
         if (cancelled) return;
         if (!profile) {
-          router.replace("/onboarding");
+          router.replace("/onboarding?next=%2Fdemo");
           return;
         }
         setAuthorized(true);
