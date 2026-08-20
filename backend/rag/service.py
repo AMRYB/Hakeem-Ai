@@ -106,24 +106,54 @@ def _needs_history_resolution(question: str) -> bool:
 
 
 def _history_context(history: list[tuple[str, str]], question: str) -> str:
+    """Resolve additive medication follow-ups without losing the active DDI set.
+
+    Drugless/out-of-scope interruptions are skipped. One-drug additive follow-ups
+    are accumulated while walking backwards, and an explicit multi-drug question
+    acts as the base of the active DDI thread. A standalone one-drug question is a
+    topic boundary so unrelated older medication threads are not merged.
+    """
     if not history or not _needs_history_resolution(question):
         return question
+
     current = extract_drugs(question).drugs
     if len(current) >= 2:
         return question
+
     previous: list[str] = []
-    for user_q, _ in reversed(history[-6:]):
-        previous.extend(extract_drugs(user_q).drugs)
-        if previous:
+
+    for user_q, _assistant_a in reversed(history[-6:]):
+        historical_drugs = extract_drugs(user_q).drugs
+
+        # Drugless/out-of-scope turns contribute no medication context, but they
+        # must not erase the active medication thread.
+        if not historical_drugs:
+            continue
+
+        # An explicit two-or-more-drug turn is the base of the active DDI thread.
+        if len(historical_drugs) >= 2:
+            previous.extend(historical_drugs)
             break
-    merged = []
-    seen = set()
+
+        # A one-drug additive follow-up (for example "what about ibuprofen too?")
+        # belongs to the same thread, so keep it and continue searching backward.
+        if _needs_history_resolution(user_q):
+            previous.extend(historical_drugs)
+            continue
+
+        # A normal standalone one-drug question starts a different topic.
+        break
+
+    merged: list[str] = []
+    seen: set[str] = set()
     for drug in current + previous:
         norm = normalize_drug_name(drug)
-        if norm not in seen:
+        if norm and norm not in seen:
             merged.append(drug)
             seen.add(norm)
-    if merged:
+
+    # Only inherit context when at least two unique drugs were reconstructed.
+    if len(merged) >= 2:
         return question + "\nResolved medication context: " + ", ".join(merged)
     return question
 
@@ -302,9 +332,22 @@ def _filter_chunks_for_profile_context(chunks: list[RetrievedChunk], profile_not
     return matched
 
 
+_INTERNAL_EVIDENCE_TAG = re.compile(r"\s*\[EVIDENCE\s+\d+\]\s*", re.IGNORECASE)
+
+
+def _sanitize_generated_answer(answer: str) -> str:
+    """Remove internal prompt evidence tags before showing the answer in the UI."""
+    cleaned = _INTERNAL_EVIDENCE_TAG.sub(" ", answer or "")
+    cleaned = re.sub(r"[ \t]+([,.;:])", r"\1", cleaned)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r" *\n *", "\n", cleaned)
+    return cleaned.strip()
+
+
 def _generate_safely(prompt: str) -> str | None:
     try:
-        return get_llm().generate(prompt)
+        answer = get_llm().generate(prompt)
+        return _sanitize_generated_answer(answer) if answer else None
     except Exception:
         return None
 
