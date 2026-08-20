@@ -21,6 +21,12 @@ function readTheme(): Theme {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function returnPath() {
+  if (typeof window === "undefined") return "/chat";
+  const next = new URLSearchParams(window.location.search).get("next") || "/chat";
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/chat";
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>("light");
@@ -32,7 +38,10 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     setTheme(readTheme());
-    if (!getToken()) router.replace("/signup");
+    if (!getToken()) {
+      const next = returnPath();
+      router.replace(`/signup${next !== "/chat" ? `?next=${encodeURIComponent(next)}` : ""}`);
+    }
   }, [router]);
 
   async function submit(event: FormEvent) {
@@ -50,7 +59,7 @@ export default function OnboardingPage() {
           health_notes: notes.trim(),
         }),
       });
-      router.replace("/chat");
+      router.replace(returnPath());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save your profile");
       setSaving(false);
