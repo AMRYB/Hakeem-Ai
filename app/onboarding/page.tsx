@@ -1,64 +1,126 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, getToken } from "@/lib/api";
-import LogoMark from "@/components/LogoMark";
+import styles from "./Onboarding.module.css";
+
+type Theme = "light" | "dark";
+
+function readTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  try {
+    const raw = localStorage.getItem("medchat-state-v1");
+    if (raw) {
+      const theme = JSON.parse(raw)?.settings?.theme;
+      if (theme === "light" || theme === "dark") return theme;
+    }
+  } catch {
+    // Use system preference below.
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const [theme, setTheme] = useState<Theme>("light");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (!getToken()) router.replace("/login"); }, [router]);
+  useEffect(() => {
+    setTheme(readTheme());
+    if (!getToken()) router.replace("/signup");
+  }, [router]);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault(); setLoading(true); setError("");
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setError("");
+
     try {
-      await apiFetch("/api/profile", { method: "PUT", body: JSON.stringify({ name, age: Number(age), health_notes: notes }) });
-      router.push("/chat");
-    } catch (err) { setError(err instanceof Error ? err.message : "Could not save profile"); }
-    finally { setLoading(false); }
+      await apiFetch("/api/profile", {
+        method: "PUT",
+        body: JSON.stringify({
+          name: name.trim(),
+          age: Number(age),
+          health_notes: notes.trim(),
+        }),
+      });
+      router.replace("/chat");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save your profile");
+      setSaving(false);
+    }
   }
 
   return (
-    <main className="auth-shell onboarding-shell">
-      <div className="onboarding-layout">
-        <aside className="onboarding-aside">
-          <Link className="brand" href="/"><LogoMark className="brand-logo" decorative /> Grounded DDI</Link>
-          <div>
-            <div className="eyebrow light-eyebrow">One-time setup</div>
-            <h2>Give the assistant the context that actually matters.</h2>
-            <p>Your profile is encrypted at rest. Only relevant context is considered when you ask a personal medication-safety question.</p>
-          </div>
-          <div className="profile-tip-card">
-            <span>Good to include</span>
-            <p>Allergies · Current medications · Long-term conditions · Pregnancy status</p>
-          </div>
-        </aside>
+    <main className={`${styles.shell} ${theme === "dark" ? styles.dark : ""}`}>
+      <section className={styles.card}>
+        <div className={styles.step}>One-time setup</div>
+        <h1 className={styles.heading}>Before we start, tell me about you.</h1>
+        <p className={styles.intro}>
+          This helps Hakeem use the right context when answering medication-safety questions. You only need to do this once.
+        </p>
 
-        <div className="auth-card onboarding-card">
-          <div className="auth-heading">
-            <div className="eyebrow">Your profile</div>
-            <h1>What should the assistant consider?</h1>
-            <p>You can edit this later from the chat sidebar.</p>
+        <form className={styles.form} onSubmit={submit}>
+          <div className={styles.row}>
+            <label className={styles.field}>
+              <span>What’s your name?</span>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+                maxLength={120}
+                autoComplete="name"
+                placeholder="Your name"
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span>How old are you?</span>
+              <input
+                type="number"
+                min={1}
+                max={120}
+                value={age}
+                onChange={(event) => setAge(event.target.value)}
+                required
+                inputMode="numeric"
+                placeholder="Age"
+              />
+            </label>
           </div>
-          <form className="auth-form" onSubmit={submit}>
-            <div className="form-row">
-              <label>Name<input value={name} onChange={e => setName(e.target.value)} required maxLength={120} placeholder="Your name" /></label>
-              <label>Age<input type="number" min={0} max={120} value={age} onChange={e => setAge(e.target.value)} required placeholder="Age" /></label>
-            </div>
-            <label>Optional health notes<textarea rows={6} value={notes} onChange={e => setNotes(e.target.value)} maxLength={4000} placeholder="e.g. Asthma, penicillin allergy, currently taking aspirin…" /></label>
-            <div className="privacy-note"><span>🔒</span><p><strong>Encrypted profile</strong><small>Only context relevant to the current question is passed into the answer workflow.</small></p></div>
-            {error && <div className="error-box">{error}</div>}
-            <button className="primary-btn full auth-submit" disabled={loading}>{loading ? "Saving…" : "Continue to chat"}</button>
-          </form>
-        </div>
-      </div>
+
+          <label className={styles.field}>
+            <span>Are you currently dealing with anything?</span>
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              maxLength={4000}
+              placeholder="For example: asthma, an allergy, a current symptom, or medicines you take regularly…"
+            />
+          </label>
+          <p className={styles.help}>Optional — leave it blank if there is nothing you want Hakeem to consider right now.</p>
+
+          <div className={styles.privacy}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect width="18" height="11" x="3" y="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>Your profile is encrypted and is used only as relevant context for your medication-safety conversations.</span>
+          </div>
+
+          {error && <div className={styles.error}>{error}</div>}
+
+          <button className={styles.submit} type="submit" disabled={saving}>
+            Continue to chat
+          </button>
+        </form>
+      </section>
     </main>
   );
 }
