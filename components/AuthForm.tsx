@@ -79,7 +79,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       if (!response.ok) throw new Error(body.detail || "Authentication failed");
 
       setToken(body.access_token);
-      router.replace("/chat");
+      router.replace(kind === "signup" || body.needs_onboarding ? "/onboarding" : "/chat");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
