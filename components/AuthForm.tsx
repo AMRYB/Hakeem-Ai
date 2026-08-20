@@ -23,6 +23,17 @@ function savedTheme(): Theme {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function returnPath() {
+  if (typeof window === "undefined") return "/chat";
+  const next = new URLSearchParams(window.location.search).get("next") || "/chat";
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/chat";
+}
+
+function authPath(mode: Mode) {
+  const next = returnPath();
+  return `/${mode === "login" ? "login" : "signup"}${next !== "/chat" ? `?next=${encodeURIComponent(next)}` : ""}`;
+}
+
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const [view, setView] = useState<Mode>(mode);
@@ -37,7 +48,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   useEffect(() => {
     setTheme(savedTheme());
     if (getToken()) {
-      router.replace("/chat");
+      router.replace(returnPath());
       return;
     }
 
@@ -54,7 +65,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     setError("");
     setSwitching(true);
     setView(next);
-    window.history.pushState({}, "", next === "login" ? "/login" : "/signup");
+    window.history.pushState({}, "", authPath(next));
     window.setTimeout(() => setSwitching(false), 720);
   }
 
@@ -79,7 +90,12 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       if (!response.ok) throw new Error(body.detail || "Authentication failed");
 
       setToken(body.access_token);
-      router.replace(kind === "signup" || body.needs_onboarding ? "/onboarding" : "/chat");
+      const next = returnPath();
+      if (kind === "signup" || body.needs_onboarding) {
+        router.replace(`/onboarding${next !== "/chat" ? `?next=${encodeURIComponent(next)}` : ""}`);
+      } else {
+        router.replace(next);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
