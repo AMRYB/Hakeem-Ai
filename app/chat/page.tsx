@@ -87,9 +87,11 @@ export default function ChatPage() {
     ensureScript(doc, "/medchat/icon-polish.js", "hakeem-icon-polish");
     ensureScript(doc, "/medchat/logout-control.js", "hakeem-logout-control");
     ensureScript(doc, "/medchat/brand-sync.js", "hakeem-brand-sync");
+    ensureScript(doc, "/medchat/voice-mode.js", "hakeem-voice-mode");
 
     ensureStylesheet(doc, "/medchat/theme-polish.css", "hakeem-theme-polish");
     ensureStylesheet(doc, "/medchat/brand-mark.css", "hakeem-brand-mark");
+    ensureStylesheet(doc, "/medchat/voice-mode.css", "hakeem-voice-mode-style");
   }
 
   if (!authorized) return null;
