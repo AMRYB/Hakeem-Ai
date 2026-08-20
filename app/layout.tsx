@@ -7,11 +7,8 @@ export const metadata: Metadata = {
   applicationName: "Hakeem",
   description: "Evidence-grounded medication safety and drug interaction assistant",
   icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon.png", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
+    icon: "/hakeem-mark.svg",
+    shortcut: "/hakeem-mark.svg",
     apple: "/apple-icon.png",
   },
 };
