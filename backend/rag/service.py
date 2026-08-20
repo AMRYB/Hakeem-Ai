@@ -18,6 +18,7 @@ from backend.rag.retrieval import ddi_pair_lookup, retrieve, retrieve_owned_pati
 from backend.rag.safety import detect_safety_signal, urgent_response
 from backend.rag.topics import chunk_matches_topic, detect_topics
 from backend.rag.patient_context import detect_contexts, meaningful_profile_terms, text_matches_context
+from backend.rag.profile_personalization import read_profile_snapshot
 from backend.rag.types import RetrievedChunk
 from backend.security import decrypt_text
 
@@ -234,6 +235,27 @@ def _references_user(question: str) -> bool:
     return bool(re.search(r"\b(?:i|me|my|mine|myself)\b", q))
 
 
+def _inherits_personal_profile_scope(history: list[tuple[str, str]], question: str) -> bool:
+    """Keep saved-profile relevance across a genuine personal follow-up only.
+
+    Example:
+      "Can I take aspirin?" -> "What about ibuprofen?"
+
+    Third-person questions such as "Can a pregnant woman take aspirin?" do not
+    inherit the logged-in user's saved profile.
+    """
+    if not history or not _needs_history_resolution(question):
+        return False
+
+    for user_q, _assistant_a in reversed(history[-6:]):
+        historical_drugs = extract_drugs(user_q).drugs
+        if not historical_drugs:
+            continue
+        return _is_personal_suitability_query(user_q) or _references_user(user_q)
+
+    return False
+
+
 def _profile_context_tokens(profile_context: str) -> list[str]:
     if not profile_context:
         return []
@@ -401,17 +423,27 @@ def answer_question(
         intent.intent = "patient_context_query"
 
     personal_suitability = _is_personal_suitability_query(question)
-    profile_notes, profile_age = _profile_values(profile)
-    saved_profile_meds = extract_drugs(profile_notes).drugs if profile_notes else []
-    personal_reference = personal_suitability or _references_user(question)
-    age_context = _age_context(profile_age) if personal_reference else ""
-    retrieval_profile_context = "\n".join(x for x in (profile_notes if personal_reference else "", age_context) if x).strip()
-    profile_context = _relevant_profile(profile, question, personal_suitability=personal_suitability)
-    if age_context and age_context not in profile_context:
-        profile_context = "\n".join(x for x in (profile_context, f"Age context: {age_context}") if x)
-
-    if (
+    personal_profile_scope = (
         personal_suitability
+        or _references_user(question)
+        or _inherits_personal_profile_scope(history, question)
+    )
+
+    # Pull only medication-relevant profile context. The user's name is intentionally
+    # excluded from both retrieval and generation.
+    profile_snapshot = read_profile_snapshot(profile)
+    saved_profile_meds = list(profile_snapshot.medications) if personal_profile_scope else []
+    retrieval_profile_context = (
+        profile_snapshot.retrieval_context(question) if personal_profile_scope else ""
+    )
+    profile_context = (
+        profile_snapshot.prompt_context(question) if personal_profile_scope else ""
+    )
+
+    # Personal suitability questions should become patient-context retrieval when a
+    # saved condition/allergy/age context exists, even if the user did not repeat it.
+    if (
+        personal_profile_scope
         and retrieval_profile_context
         and len(intent.drugs) == 1
         and intent.intent == "single_drug_info"
@@ -460,7 +492,7 @@ def answer_question(
     else:
         chunks = retrieve(db, search_question, intent.drugs, intent.intent)
 
-    if personal_suitability and retrieval_profile_context and intent.intent == "patient_context_query":
+    if personal_profile_scope and retrieval_profile_context and intent.intent == "patient_context_query":
         if has_patient_context_match(chunks):
             chunks = [c for c in chunks if c.metadata.get("context_match")]
         else:
@@ -473,10 +505,10 @@ def answer_question(
         chunks = _filter_fda_chunks_for_question(
             search_question, intent.intent, _fda_fallback(question, intent.drugs, [])
         )
-        if personal_suitability and retrieval_profile_context and intent.intent == "patient_context_query":
+        if personal_profile_scope and retrieval_profile_context and intent.intent == "patient_context_query":
             chunks = _filter_chunks_for_profile_context(chunks, retrieval_profile_context)
 
-    if personal_suitability and profile_notes and len(intent.drugs) == 1:
+    if personal_profile_scope and saved_profile_meds and len(intent.drugs) == 1:
         target = intent.drugs[0]
         saved_meds = [d for d in saved_profile_meds if normalize_drug_name(d) != normalize_drug_name(target)]
         ddi_profile_hits = []
