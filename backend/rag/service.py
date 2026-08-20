@@ -106,12 +106,15 @@ def _needs_history_resolution(question: str) -> bool:
 
 
 def _history_context(history: list[tuple[str, str]], question: str) -> str:
-    """Resolve additive medication follow-ups without losing the active DDI set.
+    """Resolve medication and clinical-topic context for short additive follow-ups.
 
-    Drugless/out-of-scope interruptions are skipped. One-drug additive follow-ups
-    are accumulated while walking backwards, and an explicit multi-drug question
-    acts as the base of the active DDI thread. A standalone one-drug question is a
-    topic boundary so unrelated older medication threads are not merged.
+    Examples:
+    - "Warfarin + Aspirin" -> "What about ibuprofen too?"
+      keeps the active multi-drug set.
+    - "Can a pregnant woman take aspirin?" -> "What about ibuprofen too?"
+      keeps *pregnancy* as the clinical topic without turning aspirin + ibuprofen
+      into a fake DDI question.
+    - Drugless/out-of-scope interruptions are skipped.
     """
     if not history or not _needs_history_resolution(question):
         return question
@@ -120,42 +123,63 @@ def _history_context(history: list[tuple[str, str]], question: str) -> str:
     if len(current) >= 2:
         return question
 
-    previous: list[str] = []
+    previous_drugs: list[str] = []
+    inherited_topics: list[str] = []
+    inherited_contexts: list[str] = []
 
     for user_q, _assistant_a in reversed(history[-6:]):
         historical_drugs = extract_drugs(user_q).drugs
 
-        # Drugless/out-of-scope turns contribute no medication context, but they
-        # must not erase the active medication thread.
+        # Skip drugless turns (including the prompt-injection/out-of-scope example)
+        # so they do not erase the last valid medication context.
         if not historical_drugs:
             continue
 
-        # An explicit two-or-more-drug turn is the base of the active DDI thread.
-        if len(historical_drugs) >= 2:
-            previous.extend(historical_drugs)
+        # If this historical turn carries a clinical topic/context, inherit the
+        # topic for the NEW drug, but do not automatically inherit the old drug.
+        topics = detect_topics(user_q)
+        contexts = detect_contexts(user_q, "question")
+        if topics or contexts:
+            inherited_topics.extend(topic.name for topic in topics)
+            inherited_contexts.extend(context.key for context in contexts)
             break
 
-        # A one-drug additive follow-up (for example "what about ibuprofen too?")
-        # belongs to the same thread, so keep it and continue searching backward.
+        # Explicit two-or-more-drug turn is the base of an active DDI thread.
+        if len(historical_drugs) >= 2:
+            previous_drugs.extend(historical_drugs)
+            break
+
+        # One-drug additive follow-up belongs to the same DDI chain; keep walking
+        # backward until the explicit multi-drug base is found.
         if _needs_history_resolution(user_q):
-            previous.extend(historical_drugs)
+            previous_drugs.extend(historical_drugs)
             continue
 
-        # A normal standalone one-drug question starts a different topic.
+        # A normal standalone one-drug turn with no clinical topic is a boundary.
         break
 
     merged: list[str] = []
     seen: set[str] = set()
-    for drug in current + previous:
+    for drug in current + previous_drugs:
         norm = normalize_drug_name(drug)
         if norm and norm not in seen:
             merged.append(drug)
             seen.add(norm)
 
-    # Only inherit context when at least two unique drugs were reconstructed.
+    resolved = question
+
+    # Multi-drug context: preserve all unique drugs for pairwise interaction routing.
     if len(merged) >= 2:
-        return question + "\nResolved medication context: " + ", ".join(merged)
-    return question
+        resolved += "\nResolved medication context: " + ", ".join(merged)
+
+    # Topic/context memory: carry only the concept (e.g. pregnancy/monitoring),
+    # not the previous drug name, so "what about ibuprofen?" after a pregnancy
+    # question becomes an ibuprofen pregnancy query rather than aspirin+ibuprofen DDI.
+    clinical_labels = list(dict.fromkeys(inherited_topics + inherited_contexts))
+    if clinical_labels:
+        resolved += "\nResolved clinical context: " + ", ".join(clinical_labels)
+
+    return resolved
 
 
 def _is_personal_suitability_query(question: str) -> bool:
@@ -336,7 +360,7 @@ _INTERNAL_EVIDENCE_TAG = re.compile(r"\s*\[EVIDENCE\s+\d+\]\s*", re.IGNORECASE)
 
 
 def _sanitize_generated_answer(answer: str) -> str:
-    """Remove internal prompt evidence tags before showing the answer in the UI."""
+    """Remove internal evidence labels that belong in prompts, not the visible UI."""
     cleaned = _INTERNAL_EVIDENCE_TAG.sub(" ", answer or "")
     cleaned = re.sub(r"[ \t]+([,.;:])", r"\1", cleaned)
     cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
@@ -421,7 +445,7 @@ def answer_question(
             confidence = score_retrieval_confidence(all_named, fda_chunks, [c.reranker_score for c in fda_chunks])
             if confidence.should_refuse_for_low_confidence:
                 return AnswerResult(answer=REFUSAL, citations=[], route="low_confidence_refusal")
-        prompt = build_prompt(question, intent.intent, fda_chunks, prompt_history, profile_context)
+        prompt = build_prompt(retrieval_question, intent.intent, fda_chunks, prompt_history, profile_context)
         answer = _generate_safely(prompt)
         if not answer:
             return AnswerResult(
@@ -479,7 +503,7 @@ def answer_question(
     if not chunks:
         return AnswerResult(answer=REFUSAL, citations=[], route="no_evidence_refusal")
 
-    prompt = build_prompt(question, intent.intent, chunks, prompt_history, profile_context)
+    prompt = build_prompt(retrieval_question, intent.intent, chunks, prompt_history, profile_context)
     answer = _generate_safely(prompt)
     if not answer:
         return AnswerResult(
